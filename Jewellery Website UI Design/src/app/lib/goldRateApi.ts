@@ -1,4 +1,6 @@
-const DEFAULT_API_BASE_URL = "http://localhost:5000";
+const DEFAULT_API_BASE_URL = import.meta.env.PROD
+  ? "https://jewellery-backend.onrender.com"
+  : "http://localhost:5000";
 
 const API_BASE_URL = (
   import.meta.env.VITE_GOLD_RATE_API_URL || DEFAULT_API_BASE_URL
