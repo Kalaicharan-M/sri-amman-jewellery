@@ -1,0 +1,15 @@
+venv/
+.vscode/
+tmp/
+node_modules/
+dist/
+**pycache**/
+__pycache__/
+.env
+*.log
+Backend/gold_rate_cache.json
+*.pyc
+*.pyo
+*.pyd
+
+.env.local
