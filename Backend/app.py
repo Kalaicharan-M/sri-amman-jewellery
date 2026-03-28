@@ -23,6 +23,27 @@ ALLOWED_IMAGE_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
 ADMIN_SESSION_TTL_SECONDS = 60 * 60 * 24 * 7
 
 
+def _load_local_env_file():
+    env_path = BASE_DIR / ".env"
+    if not env_path.exists():
+        return
+
+    for raw_line in env_path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+
+        if key and key not in os.environ:
+            os.environ[key] = value
+
+
+_load_local_env_file()
+
+
 def _get_allowed_origins():
     raw_origins = os.getenv(
         "FRONTEND_ORIGINS",
