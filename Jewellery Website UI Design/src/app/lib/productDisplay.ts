@@ -34,16 +34,6 @@ const CATEGORY_LABELS: Record<ProductCategory, string> = {
   bangles: "Bangles",
 };
 
-const priceFormatter = new Intl.NumberFormat("en-IN", {
-  style: "currency",
-  currency: "INR",
-  maximumFractionDigits: 0,
-});
-
 export function getProductCategoryLabel(category: ProductCategory) {
   return CATEGORY_LABELS[category] ?? category;
-}
-
-export function formatProductPrice(price: number) {
-  return priceFormatter.format(price);
 }

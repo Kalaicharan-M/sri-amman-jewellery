@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { Clock, Mail, MapPin, MessageCircle, Phone, Send } from "lucide-react";
 
+import {
+  CONTACT_PHONE_DISPLAY,
+  CONTACT_TEL_LINK,
+  CONTACT_WHATSAPP_BASE_URL,
+} from "../lib/contact";
+
 export function Contact() {
   const showroomAddress = "ST-2, Kollar Theru, Veeraganur, Tamil Nadu 636116";
   const googleMapsQuery =
@@ -68,8 +74,8 @@ export function Contact() {
               <Phone className="w-6 h-6 text-yellow-600" />
             </div>
             <h3 className="text-gray-900 mb-2">Call Us</h3>
-            <a href="tel:+919363161304" className="text-sm text-yellow-600 hover:text-yellow-700">
-              9363161304
+            <a href={CONTACT_TEL_LINK} className="text-sm text-yellow-600 hover:text-yellow-700">
+              {CONTACT_PHONE_DISPLAY}
             </a>
           </div>
 
@@ -126,7 +132,7 @@ export function Contact() {
 
             <div className="flex flex-col sm:flex-row gap-3">
               <a
-                href="https://wa.me/919363161304"
+                href={CONTACT_WHATSAPP_BASE_URL}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full sm:flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm"
@@ -136,7 +142,7 @@ export function Contact() {
               </a>
 
               <a
-                href="tel:+919363161304"
+                href={CONTACT_TEL_LINK}
                 className="w-full sm:flex-1 flex items-center justify-center gap-2 px-5 py-3 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors shadow-sm"
               >
                 <Phone className="w-5 h-5" />
@@ -208,7 +214,7 @@ export function Contact() {
                     onChange={handleChange}
                     required
                     className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-600 focus:border-transparent"
-                    placeholder="9363161304"
+                    placeholder={CONTACT_PHONE_DISPLAY}
                   />
                 </div>
 
@@ -262,7 +268,7 @@ export function Contact() {
               </a>
 
               <a
-                href="tel:+919363161304"
+                href={CONTACT_TEL_LINK}
                 className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
               >
                 <Phone className="w-5 h-5" />

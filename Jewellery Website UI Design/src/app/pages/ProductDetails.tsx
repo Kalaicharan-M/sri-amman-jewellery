@@ -9,9 +9,14 @@ import {
 } from "lucide-react";
 
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
+import { ProductContactCta } from "../components/ProductContactCta";
 import { useProducts } from "../hooks/useProducts";
 import { resolveAssetUrl } from "../lib/api";
-import { formatProductPrice, getProductCategoryLabel } from "../lib/productDisplay";
+import {
+  buildProductWhatsAppLink,
+  CONTACT_TEL_LINK,
+} from "../lib/contact";
+import { getProductCategoryLabel } from "../lib/productDisplay";
 
 export function ProductDetails() {
   const { id } = useParams();
@@ -21,6 +26,10 @@ export function ProductDetails() {
   const relatedProducts = products
     .filter((item) => item.id !== id && item.category === product?.category)
     .slice(0, 3);
+  const categoryLabel = product ? getProductCategoryLabel(product.category) : "";
+  const whatsappLink = product
+    ? buildProductWhatsAppLink(product.title, categoryLabel)
+    : "";
 
   if (loading) {
     return (
@@ -83,12 +92,9 @@ export function ProductDetails() {
           <div className="space-y-6">
             <div className="space-y-3">
               <p className="text-sm uppercase tracking-[0.22em] text-[#b88a2f]">
-                {getProductCategoryLabel(product.category)}
+                {categoryLabel}
               </p>
               <h1 className="text-3xl text-slate-900 sm:text-4xl">{product.title}</h1>
-              <p className="text-2xl text-slate-900 sm:text-3xl">
-                {formatProductPrice(product.price)}
-              </p>
               <p className="text-sm leading-7 text-slate-600 sm:text-base">
                 {product.description}
               </p>
@@ -135,28 +141,41 @@ export function ProductDetails() {
               </div>
             </div>
 
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <a
-                href="https://wa.me/919363161304"
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#c89b3c] px-6 py-3 text-white shadow-md transition hover:bg-[#b88a2f] md:w-auto"
-              >
-                <MessageCircle className="h-4 w-4" />
-                Enquire on WhatsApp
-              </a>
-              <a
-                href="tel:+919363161304"
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300 px-6 py-3 text-slate-800 transition hover:bg-white md:w-auto"
-              >
-                <Phone className="h-4 w-4" />
-                Call Now
-              </a>
+            <div className="rounded-[2rem] border border-[#eadfc5] bg-gradient-to-br from-[#fffaf0] to-white p-6 shadow-sm">
+              <p className="text-sm uppercase tracking-[0.18em] text-[#b88a2f]">
+                Price on Request
+              </p>
+              <h2 className="mt-2 text-2xl text-slate-900">
+                Connect with our team for pricing and availability.
+              </h2>
+              <p className="mt-3 text-sm leading-7 text-slate-600">
+                We will share the latest quote, making charges, and showroom availability
+                for this {categoryLabel.toLowerCase()} design.
+              </p>
+
+              <div className="mt-5 flex flex-col gap-2">
+                <a
+                  href={CONTACT_TEL_LINK}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#c89b3c] px-4 py-2 text-white shadow-sm transition duration-200 hover:-translate-y-0.5 hover:bg-[#b88a2f]"
+                >
+                  <Phone className="h-4 w-4" />
+                  Call Now
+                </a>
+                <a
+                  href={whatsappLink}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-green-500 px-4 py-2 text-green-600 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:bg-green-50"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  WhatsApp
+                </a>
+              </div>
             </div>
 
             <div className="rounded-2xl border border-[#eadfc5] bg-[#fff9ec] p-5 text-sm leading-7 text-slate-600">
-              Final price varies based on live gold rate, design complexity, and making
-              charges. Contact the showroom for an exact quotation before purchase.
+              Contact us for a tailored quote, current making charges, and the latest
+              availability for this jewellery piece.
             </div>
           </div>
         </div>
@@ -182,30 +201,42 @@ export function ProductDetails() {
             </div>
 
             <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 sm:gap-6">
-              {relatedProducts.map((relatedProduct) => (
-                <Link
-                  key={relatedProduct.id}
-                  to={`/products/${relatedProduct.id}`}
-                  className="group overflow-hidden rounded-2xl border border-[#f0e6d2] bg-white shadow-md transition hover:-translate-y-1 hover:shadow-xl"
-                >
-                  <div className="overflow-hidden">
-                    <ImageWithFallback
-                      src={resolveAssetUrl(relatedProduct.image)}
-                      alt={relatedProduct.title}
-                      className="h-[220px] w-full object-cover transition duration-500 group-hover:scale-105"
-                    />
+              {relatedProducts.map((relatedProduct) => {
+                const relatedCategoryLabel = getProductCategoryLabel(relatedProduct.category);
+
+                return (
+                  <div
+                    key={relatedProduct.id}
+                    className="overflow-hidden rounded-2xl border border-[#f0e6d2] bg-white shadow-md transition hover:-translate-y-1 hover:shadow-xl"
+                  >
+                    <Link
+                      to={`/products/${relatedProduct.id}`}
+                      className="group block overflow-hidden"
+                    >
+                      <ImageWithFallback
+                        src={resolveAssetUrl(relatedProduct.image)}
+                        alt={relatedProduct.title}
+                        className="h-[220px] w-full object-cover transition duration-500 group-hover:scale-105"
+                      />
+                    </Link>
+                    <div className="space-y-2 p-4">
+                      <p className="text-xs uppercase tracking-[0.18em] text-[#b88a2f]">
+                        {relatedCategoryLabel}
+                      </p>
+                      <Link
+                        to={`/products/${relatedProduct.id}`}
+                        className="block text-xl text-slate-900 transition hover:text-[#b88a2f]"
+                      >
+                        {relatedProduct.title}
+                      </Link>
+                      <ProductContactCta
+                        productName={relatedProduct.title}
+                        categoryLabel={relatedCategoryLabel}
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-2 p-4">
-                    <p className="text-xs uppercase tracking-[0.18em] text-[#b88a2f]">
-                      {getProductCategoryLabel(relatedProduct.category)}
-                    </p>
-                    <h3 className="text-xl text-slate-900">{relatedProduct.title}</h3>
-                    <p className="text-base text-slate-900">
-                      {formatProductPrice(relatedProduct.price)}
-                    </p>
-                  </div>
-                </Link>
-              ))}
+                );
+              })}
             </div>
           </section>
         )}

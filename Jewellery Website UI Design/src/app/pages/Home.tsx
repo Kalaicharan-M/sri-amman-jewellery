@@ -9,12 +9,13 @@ import {
 } from "lucide-react";
 
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
+import { ProductContactCta } from "../components/ProductContactCta";
 import { useGoldRates } from "../hooks/useGoldRates";
 import { useProducts } from "../hooks/useProducts";
 import { resolveAssetUrl } from "../lib/api";
+import { CONTACT_WHATSAPP_BASE_URL } from "../lib/contact";
 import { formatLastUpdated, formatRate } from "../lib/goldRateDisplay";
 import {
-  formatProductPrice,
   getProductCategoryLabel,
   PRODUCT_CATEGORY_OPTIONS,
 } from "../lib/productDisplay";
@@ -202,38 +203,45 @@ export function Home() {
           <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 sm:gap-6">
             {productsLoading
               ? Array.from({ length: 4 }).map((_, index) => <ProductCardSkeleton key={index} />)
-              : featuredProducts.map((product) => (
-                  <Link
-                    key={product.id}
-                    to={`/products/${product.id}`}
-                    className="group overflow-hidden rounded-2xl border border-[#f0e6d2] bg-white shadow-md transition hover:-translate-y-1 hover:shadow-xl"
-                  >
-                    <div className="overflow-hidden">
-                      <ImageWithFallback
-                        src={resolveAssetUrl(product.image)}
-                        alt={product.title}
-                        className="h-[220px] w-full object-cover transition duration-500 group-hover:scale-105"
-                      />
-                    </div>
-                    <div className="space-y-2 p-4">
-                      <p className="text-xs uppercase tracking-[0.18em] text-[#b88a2f]">
-                        {getProductCategoryLabel(product.category)}
-                      </p>
-                      <h3 className="text-xl text-slate-900">{product.title}</h3>
-                      <p className="line-clamp-2 text-sm leading-6 text-slate-600">
-                        {product.description}
-                      </p>
-                      <div className="flex items-center justify-between pt-2">
-                        <span className="text-base text-slate-900">
-                          {formatProductPrice(product.price)}
-                        </span>
-                        <span className="text-sm text-slate-500 transition group-hover:text-[#b88a2f]">
-                          View
-                        </span>
+              : featuredProducts.map((product) => {
+                  const categoryLabel = getProductCategoryLabel(product.category);
+
+                  return (
+                    <div
+                      key={product.id}
+                      className="overflow-hidden rounded-2xl border border-[#f0e6d2] bg-white shadow-md transition hover:-translate-y-1 hover:shadow-xl"
+                    >
+                      <Link
+                        to={`/products/${product.id}`}
+                        className="group block overflow-hidden"
+                      >
+                        <ImageWithFallback
+                          src={resolveAssetUrl(product.image)}
+                          alt={product.title}
+                          className="h-[220px] w-full object-cover transition duration-500 group-hover:scale-105"
+                        />
+                      </Link>
+                      <div className="space-y-3 p-4">
+                        <p className="text-xs uppercase tracking-[0.18em] text-[#b88a2f]">
+                          {categoryLabel}
+                        </p>
+                        <Link
+                          to={`/products/${product.id}`}
+                          className="block text-xl text-slate-900 transition hover:text-[#b88a2f]"
+                        >
+                          {product.title}
+                        </Link>
+                        <p className="line-clamp-2 text-sm leading-6 text-slate-600">
+                          {product.description}
+                        </p>
+                        <ProductContactCta
+                          productName={product.title}
+                          categoryLabel={categoryLabel}
+                        />
                       </div>
                     </div>
-                  </Link>
-                ))}
+                  );
+                })}
           </div>
         </div>
       </section>
@@ -328,7 +336,7 @@ export function Home() {
                 <ArrowRight className="h-4 w-4" />
               </Link>
               <a
-                href="https://wa.me/919363161304"
+                href={CONTACT_WHATSAPP_BASE_URL}
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300 px-6 py-3 text-slate-800 transition hover:bg-white/70 md:w-auto"

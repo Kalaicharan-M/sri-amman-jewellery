@@ -17,7 +17,6 @@ import {
 } from "../../lib/adminSession";
 import { formatRate } from "../../lib/goldRateDisplay";
 import {
-  formatProductPrice,
   getProductCategoryLabel,
   PRODUCT_CATEGORY_OPTIONS,
 } from "../../lib/productDisplay";
@@ -264,8 +263,8 @@ export function AdminDashboard() {
                         {getProductCategoryLabel(product.category)}
                       </p>
                     </div>
-                    <p className="text-base text-slate-900">
-                      {formatProductPrice(product.price)}
+                    <p className="text-sm font-medium text-[#b88a2f]">
+                      Price hidden on storefront
                     </p>
                   </div>
                 </div>

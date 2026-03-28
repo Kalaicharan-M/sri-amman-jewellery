@@ -3,6 +3,11 @@ import { Outlet, Link, useLocation } from "react-router";
 import { ChevronRight, Menu, Phone, ShieldCheck, X } from "lucide-react";
 
 import logoImage from "../../../images/logo.png";
+import {
+  CONTACT_PHONE_DISPLAY,
+  CONTACT_TEL_LINK,
+  CONTACT_WHATSAPP_BASE_URL,
+} from "../lib/contact";
 
 const publicNavLinks = [
   { path: "/", label: "Home" },
@@ -109,7 +114,7 @@ export function Layout() {
             {!isAdmin ? (
               <>
                 <a
-                  href="tel:+919363161304"
+                  href={CONTACT_TEL_LINK}
                   className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#c89b3c] px-6 py-3 text-sm text-white shadow-md transition hover:bg-[#b88a2f]"
                 >
                   <Phone className="h-4 w-4" />
@@ -168,7 +173,7 @@ export function Layout() {
               {!isAdmin ? (
                 <>
                   <a
-                    href="tel:+919363161304"
+                    href={CONTACT_TEL_LINK}
                     className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#c89b3c] px-6 py-3 text-sm text-white shadow-md transition hover:bg-[#b88a2f]"
                   >
                     <Phone className="h-4 w-4" />
@@ -238,7 +243,7 @@ export function Layout() {
                     </Link>
                   ))}
                   <a
-                    href="https://wa.me/919363161304"
+                    href={CONTACT_WHATSAPP_BASE_URL}
                     target="_blank"
                     rel="noreferrer"
                     className="text-[#d8c6a0] transition hover:text-[#f5ecd9]"
@@ -252,7 +257,7 @@ export function Layout() {
                 <h3 className="text-lg text-white">Contact</h3>
                 <div className="space-y-2 text-sm leading-7 text-[#d8c6a0]">
                   <p>ST-2, Kollar Theru, Veeraganur, Tamil Nadu 636116</p>
-                  <p>Phone: 9363161304</p>
+                  <p>Phone: {CONTACT_PHONE_DISPLAY}</p>
                   <p>Email: sriammanjewells@gmail.com</p>
                   <p>Open: Monday to Saturday, 10 AM - 8 PM</p>
                 </div>

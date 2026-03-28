@@ -7,7 +7,6 @@ import { useProducts } from "../../hooks/useProducts";
 import { resolveAssetUrl } from "../../lib/api";
 import { clearAdminSession, getAdminSession } from "../../lib/adminSession";
 import {
-  formatProductPrice,
   getProductCategoryLabel,
   PRODUCT_CATEGORY_OPTIONS,
 } from "../../lib/productDisplay";
@@ -322,8 +321,8 @@ export function AdminProducts() {
                   <div className="space-y-2">
                     <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                       <h3 className="text-xl text-slate-900">{product.title}</h3>
-                      <p className="text-base text-slate-900">
-                        {formatProductPrice(product.price)}
+                      <p className="text-sm font-medium text-[#b88a2f]">
+                        Price hidden on storefront
                       </p>
                     </div>
                     <p className="text-xs uppercase tracking-[0.18em] text-[#b88a2f]">
