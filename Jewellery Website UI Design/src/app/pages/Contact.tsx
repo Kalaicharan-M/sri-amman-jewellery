@@ -79,10 +79,10 @@ export function Contact() {
             </div>
             <h3 className="text-gray-900 mb-2">Email Us</h3>
             <a
-              href="mailto:info@sriammanjewellery.com"
+              href="mailto:sriammanjewells@gmail.com"
               className="text-sm text-yellow-600 hover:text-yellow-700 break-all"
             >
-              info@sriammanjewellery.com
+              sriammanjewells@gmail.com
             </a>
           </div>
 

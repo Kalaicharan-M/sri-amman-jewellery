@@ -1,220 +1,362 @@
 import { useState } from "react";
-import { Link } from "react-router";
-import { Plus, Search, Edit, Trash2, Eye } from "lucide-react";
+import { Link, Navigate } from "react-router";
+import { ImagePlus, Trash2 } from "lucide-react";
+
+import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
+import { useProducts } from "../../hooks/useProducts";
+import { resolveAssetUrl } from "../../lib/api";
+import { clearAdminSession, getAdminSession } from "../../lib/adminSession";
+import {
+  formatProductPrice,
+  getProductCategoryLabel,
+  PRODUCT_CATEGORY_OPTIONS,
+} from "../../lib/productDisplay";
+import { createProduct, deleteProduct, type ProductCategory } from "../../lib/productsApi";
 
 export function AdminProducts() {
+  const session = getAdminSession();
+  const { products, loading, error, reload } = useProducts();
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedCategory, setSelectedCategory] = useState<"all" | ProductCategory>("all");
+  const [title, setTitle] = useState("");
+  const [category, setCategory] = useState<ProductCategory>("rings");
+  const [price, setPrice] = useState("");
+  const [description, setDescription] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [submitLoading, setSubmitLoading] = useState(false);
+  const [deleteLoadingId, setDeleteLoadingId] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const categories = ["all", "rings", "necklaces", "earrings", "bangles"];
-
-  const products = [
-    {
-      id: 1,
-      name: "Elegant Gold Chain",
-      category: "necklaces",
-      weight: "15.5g",
-      purity: "22K",
-      status: "active",
-      image: "https://images.unsplash.com/photo-1662434923031-b9bf1b6c10e2?w=100",
-    },
-    {
-      id: 2,
-      name: "Wedding Ring Set",
-      category: "rings",
-      weight: "12.5g",
-      purity: "22K",
-      status: "active",
-      image: "https://images.unsplash.com/photo-1654521883301-070279dd0ae1?w=100",
-    },
-    {
-      id: 3,
-      name: "Pink Gold Earrings",
-      category: "earrings",
-      weight: "6.5g",
-      purity: "22K",
-      status: "active",
-      image: "https://images.unsplash.com/photo-1645994044915-a67a383f7c6a?w=100",
-    },
-    {
-      id: 4,
-      name: "Traditional Bangles",
-      category: "bangles",
-      weight: "35.5g",
-      purity: "22K",
-      status: "active",
-      image: "https://images.unsplash.com/photo-1679156271456-d6068c543ee7?w=100",
-    },
-    {
-      id: 5,
-      name: "Pearl Gold Necklace",
-      category: "necklaces",
-      weight: "18.2g",
-      purity: "22K",
-      status: "active",
-      image: "https://images.unsplash.com/photo-1672646856394-ec0dd6a4ccec?w=100",
-    },
-  ];
+  if (!session) {
+    return <Navigate to="/admin" replace />;
+  }
 
   const filteredProducts = products.filter((product) => {
-    const matchesSearch = product.name
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase());
     const matchesCategory =
       selectedCategory === "all" || product.category === selectedCategory;
-    return matchesSearch && matchesCategory;
+    const query = searchQuery.trim().toLowerCase();
+    const matchesQuery =
+      query === "" ||
+      product.title.toLowerCase().includes(query) ||
+      product.description.toLowerCase().includes(query);
+
+    return matchesCategory && matchesQuery;
   });
 
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!imageFile) {
+      setFormError("Please upload a product image.");
+      return;
+    }
+
+    try {
+      setSubmitLoading(true);
+      setFormError(null);
+      setSuccessMessage(null);
+      await createProduct(
+        {
+          title,
+          category,
+          price,
+          description,
+          imageFile,
+        },
+        session.token,
+      );
+
+      setTitle("");
+      setCategory("rings");
+      setPrice("");
+      setDescription("");
+      setImageFile(null);
+      setSuccessMessage("Product added successfully and is now visible on the website.");
+      await reload();
+    } catch (submitError) {
+      const message =
+        submitError instanceof Error ? submitError.message : "Unable to create product.";
+      setFormError(message);
+
+      if (message === "Admin login required.") {
+        clearAdminSession();
+      }
+    } finally {
+      setSubmitLoading(false);
+    }
+  }
+
+  async function handleDelete(productId: string) {
+    const shouldDelete = window.confirm("Delete this product from the catalogue?");
+    if (!shouldDelete) {
+      return;
+    }
+
+    try {
+      setDeleteLoadingId(productId);
+      setFormError(null);
+      setSuccessMessage(null);
+      await deleteProduct(productId, session.token);
+      setSuccessMessage("Product deleted successfully.");
+      await reload();
+    } catch (deleteError) {
+      const message =
+        deleteError instanceof Error ? deleteError.message : "Unable to delete product.";
+      setFormError(message);
+
+      if (message === "Admin login required.") {
+        clearAdminSession();
+      }
+    } finally {
+      setDeleteLoadingId(null);
+    }
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
-          <div className="mb-4 md:mb-0">
-            <h1 className="text-gray-900 mb-2">Manage Products</h1>
-            <p className="text-gray-600">
-              Add, edit, or remove products from your collection
+    <div className="min-h-screen bg-[#fffdf8] px-4 py-8 md:px-8">
+      <div className="mx-auto max-w-7xl">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-sm uppercase tracking-[0.22em] text-[#b88a2f]">
+              Product Management
+            </p>
+            <h1 className="mt-2 text-3xl text-slate-900 sm:text-4xl">
+              Add, review, and remove jewellery listings.
+            </h1>
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">
+              Upload new product images, set category and pricing, then see changes
+              reflected immediately in the public storefront.
             </p>
           </div>
-          <button className="inline-flex items-center gap-2 px-6 py-3 bg-yellow-600 text-white rounded-xl hover:bg-yellow-700 transition-colors shadow-md">
-            <Plus className="w-5 h-5" />
-            Add New Product
-          </button>
+          <Link
+            to="/products"
+            className="inline-flex items-center justify-center rounded-xl border border-[#eadfc5] px-5 py-3 text-sm text-slate-700 transition hover:bg-white"
+          >
+            Preview public catalogue
+          </Link>
         </div>
 
-        {/* Filters */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-6">
-          <div className="grid md:grid-cols-2 gap-4">
-            {/* Search */}
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+        <div className="mt-8 grid grid-cols-1 gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+          <div className="rounded-[2rem] border border-[#eadfc5] bg-white p-6 shadow-sm">
+            <h2 className="text-2xl text-slate-900">Add Product</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Fill in the essentials: image, title, category, price, and a short luxury-focused description.
+            </p>
+
+            <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+              <div>
+                <label htmlFor="title" className="mb-2 block text-sm text-slate-700">
+                  Product title
+                </label>
+                <input
+                  id="title"
+                  type="text"
+                  value={title}
+                  onChange={(event) => setTitle(event.target.value)}
+                  required
+                  className="w-full rounded-xl border border-[#eadfc5] bg-[#fffdf8] px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-[#c89b3c]"
+                  placeholder="Temple Gold Necklace"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="category" className="mb-2 block text-sm text-slate-700">
+                    Category
+                  </label>
+                  <select
+                    id="category"
+                    value={category}
+                    onChange={(event) => setCategory(event.target.value as ProductCategory)}
+                    className="w-full rounded-xl border border-[#eadfc5] bg-[#fffdf8] px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-[#c89b3c]"
+                  >
+                    {PRODUCT_CATEGORY_OPTIONS.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="price" className="mb-2 block text-sm text-slate-700">
+                    Price
+                  </label>
+                  <input
+                    id="price"
+                    type="number"
+                    value={price}
+                    onChange={(event) => setPrice(event.target.value)}
+                    min="1"
+                    required
+                    className="w-full rounded-xl border border-[#eadfc5] bg-[#fffdf8] px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-[#c89b3c]"
+                    placeholder="125000"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="description" className="mb-2 block text-sm text-slate-700">
+                  Description
+                </label>
+                <textarea
+                  id="description"
+                  value={description}
+                  onChange={(event) => setDescription(event.target.value)}
+                  required
+                  rows={5}
+                  className="w-full rounded-xl border border-[#eadfc5] bg-[#fffdf8] px-4 py-3 text-sm leading-6 text-slate-700 outline-none transition focus:border-[#c89b3c]"
+                  placeholder="Describe the design, finish, and the occasion it suits best."
+                />
+              </div>
+
+              <div>
+                <label htmlFor="image" className="mb-2 block text-sm text-slate-700">
+                  Product image
+                </label>
+                <label
+                  htmlFor="image"
+                  className="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-[#d8c08f] bg-[#fffaf0] px-6 py-8 text-center transition hover:bg-[#fff6df]"
+                >
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-[#b88a2f] shadow-sm">
+                    <ImagePlus className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-slate-900">
+                      {imageFile ? imageFile.name : "Click to upload a JPG, PNG, or WEBP image"}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      High-quality vertical or square images work best for the premium card layout.
+                    </p>
+                  </div>
+                </label>
+                <input
+                  id="image"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  onChange={(event) => setImageFile(event.target.files?.[0] ?? null)}
+                  className="hidden"
+                />
+              </div>
+
+              {(formError || successMessage) && (
+                <div
+                  className={`rounded-xl px-4 py-3 text-sm ${
+                    formError
+                      ? "border border-red-200 bg-red-50 text-red-700"
+                      : "border border-green-200 bg-green-50 text-green-700"
+                  }`}
+                >
+                  {formError || successMessage}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={submitLoading}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#c89b3c] px-6 py-3 text-white shadow-md transition hover:bg-[#b88a2f] disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {submitLoading ? "Uploading product..." : "Add Product"}
+              </button>
+            </form>
+          </div>
+
+          <div className="rounded-[2rem] border border-[#eadfc5] bg-white p-6 shadow-sm">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-2xl text-slate-900">Live Products</h2>
+                <p className="mt-2 text-sm text-slate-600">
+                  Manage the products currently visible in the public catalogue.
+                </p>
+              </div>
+              <p className="text-sm text-slate-500">
+                {loading ? "Loading..." : `${filteredProducts.length} visible items`}
+              </p>
+            </div>
+
+            <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
               <input
                 type="text"
-                placeholder="Search products..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-yellow-600 focus:border-transparent"
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="Search title or description"
+                className="w-full rounded-xl border border-[#eadfc5] bg-[#fffdf8] px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-[#c89b3c]"
               />
-            </div>
-
-            {/* Category Filter */}
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-yellow-600 focus:border-transparent capitalize"
-            >
-              {categories.map((category) => (
-                <option key={category} value={category}>
-                  {category === "all" ? "All Categories" : category}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* Products Table */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="text-left px-6 py-4 text-sm text-gray-700">
-                    Product
-                  </th>
-                  <th className="text-left px-6 py-4 text-sm text-gray-700">
-                    Category
-                  </th>
-                  <th className="text-left px-6 py-4 text-sm text-gray-700">
-                    Weight
-                  </th>
-                  <th className="text-left px-6 py-4 text-sm text-gray-700">
-                    Purity
-                  </th>
-                  <th className="text-left px-6 py-4 text-sm text-gray-700">
-                    Status
-                  </th>
-                  <th className="text-right px-6 py-4 text-sm text-gray-700">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {filteredProducts.map((product) => (
-                  <tr key={product.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <img
-                          src={product.image}
-                          alt={product.name}
-                          className="w-12 h-12 rounded-lg object-cover"
-                        />
-                        <span className="text-sm text-gray-900">
-                          {product.name}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600 capitalize">
-                      {product.category}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {product.weight}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {product.purity}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="inline-flex px-3 py-1 text-xs bg-green-100 text-green-700 rounded-full">
-                        {product.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center justify-end gap-2">
-                        <Link
-                          to={`/products/${product.id}`}
-                          className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Link>
-                        <button className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors">
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+              <select
+                value={selectedCategory}
+                onChange={(event) =>
+                  setSelectedCategory(event.target.value as "all" | ProductCategory)
+                }
+                className="w-full rounded-xl border border-[#eadfc5] bg-[#fffdf8] px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-[#c89b3c]"
+              >
+                <option value="all">All Categories</option>
+                {PRODUCT_CATEGORY_OPTIONS.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label}
+                  </option>
                 ))}
-              </tbody>
-            </table>
-          </div>
-
-          {filteredProducts.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-gray-600">No products found</p>
+              </select>
             </div>
-          )}
 
-          {/* Pagination */}
-          <div className="px-6 py-4 border-t border-gray-200">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-gray-600">
-                Showing {filteredProducts.length} of {products.length} products
-              </p>
-              <div className="flex items-center gap-2">
-                <button className="px-4 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                  Previous
-                </button>
-                <button className="px-4 py-2 text-sm text-white bg-yellow-600 rounded-lg hover:bg-yellow-700 transition-colors">
-                  1
-                </button>
-                <button className="px-4 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                  2
-                </button>
-                <button className="px-4 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                  Next
-                </button>
+            {error && (
+              <div className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {error}
               </div>
+            )}
+
+            <div className="mt-6 space-y-4">
+              {filteredProducts.map((product) => (
+                <div
+                  key={product.id}
+                  className="grid grid-cols-1 gap-4 rounded-2xl border border-[#f0e6d2] bg-[#fffaf0] p-4 lg:grid-cols-[110px_1fr_auto]"
+                >
+                  <div className="overflow-hidden rounded-2xl bg-white">
+                    <ImageWithFallback
+                      src={resolveAssetUrl(product.image)}
+                      alt={product.title}
+                      className="h-28 w-full object-cover lg:h-28 lg:w-[110px]"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                      <h3 className="text-xl text-slate-900">{product.title}</h3>
+                      <p className="text-base text-slate-900">
+                        {formatProductPrice(product.price)}
+                      </p>
+                    </div>
+                    <p className="text-xs uppercase tracking-[0.18em] text-[#b88a2f]">
+                      {getProductCategoryLabel(product.category)}
+                    </p>
+                    <p className="line-clamp-2 text-sm leading-6 text-slate-600">
+                      {product.description}
+                    </p>
+                    <Link
+                      to={`/products/${product.id}`}
+                      className="inline-flex text-sm text-slate-500 transition hover:text-[#b88a2f]"
+                    >
+                      View on public site
+                    </Link>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(product.id)}
+                    disabled={deleteLoadingId === product.id}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 px-4 py-3 text-sm text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    {deleteLoadingId === product.id ? "Deleting..." : "Delete"}
+                  </button>
+                </div>
+              ))}
+
+              {!loading && filteredProducts.length === 0 && (
+                <div className="rounded-2xl border border-[#f0e6d2] bg-[#fffaf0] px-5 py-12 text-center text-sm text-slate-600">
+                  No products match the current filter.
+                </div>
+              )}
             </div>
           </div>
         </div>

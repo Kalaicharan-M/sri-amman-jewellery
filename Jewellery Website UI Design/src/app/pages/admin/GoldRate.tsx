@@ -1,255 +1,157 @@
-import { useState } from "react";
-import { Save, TrendingUp, Calendar } from "lucide-react";
+import { Navigate } from "react-router";
+import { AlertCircle, RefreshCw, ShieldCheck } from "lucide-react";
+
+import { useGoldRates } from "../../hooks/useGoldRates";
+import { getAdminSession } from "../../lib/adminSession";
+import { formatLastUpdated, formatRate } from "../../lib/goldRateDisplay";
 
 export function AdminGoldRate() {
-  const [rates, setRates] = useState({
-    gold22k: "6450",
-    gold24k: "7020",
-    silver: "82",
-  });
-  const [saved, setSaved] = useState(false);
+  const session = getAdminSession();
+  const { displayData, loading, error, isUsingFallback } = useGoldRates();
+  const refreshIntervalMinutes = displayData.cache_ttl_minutes ?? 10;
+  const history = displayData.history ?? [];
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setRates({
-      ...rates,
-      [e.target.name]: e.target.value,
-    });
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
-  };
-
-  const history = [
-    { date: "Mar 27, 2026", gold22k: 6450, gold24k: 7020, silver: 82 },
-    { date: "Mar 26, 2026", gold22k: 6425, gold24k: 6990, silver: 83 },
-    { date: "Mar 25, 2026", gold22k: 6410, gold24k: 6975, silver: 82 },
-    { date: "Mar 24, 2026", gold22k: 6400, gold24k: 6960, silver: 81 },
-    { date: "Mar 23, 2026", gold22k: 6390, gold24k: 6950, silver: 80 },
-  ];
+  if (!session) {
+    return <Navigate to="/admin" replace />;
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-gray-900 mb-2">Gold Rate Manual Override</h1>
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-            <p className="text-gray-600">
-              Rates auto-update daily from live data source
-            </p>
-          </div>
-          <p className="text-sm text-gray-500">
-            Use this form only to manually override automatic rates when needed
+    <div className="min-h-screen bg-[#fffdf8] px-4 py-8 md:px-8">
+      <div className="mx-auto max-w-7xl">
+        <div>
+          <p className="text-sm uppercase tracking-[0.22em] text-[#b88a2f]">
+            Gold Rate Monitor
+          </p>
+          <h1 className="mt-2 text-3xl text-slate-900 sm:text-4xl">
+            Live pricing status for the storefront.
+          </h1>
+          <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600 sm:text-base">
+            Review the live rate feed, confirm fallback behavior, and check recent
+            price history served by the Flask scraper endpoint.
           </p>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Update Form */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-              {saved && (
-                <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl text-green-700">
-                  ✓ Gold rates updated successfully!
-                </div>
-              )}
+        <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-3">
+          {[
+            { label: "22K Gold", value: displayData.gold_22k },
+            { label: "24K Gold", value: displayData.gold_24k },
+            { label: "Silver", value: displayData.silver },
+          ].map((item) => (
+            <div
+              key={item.label}
+              className="rounded-[1.75rem] border border-[#eadfc5] bg-white p-5 shadow-sm"
+            >
+              <p className="text-sm text-slate-500">{item.label}</p>
+              <p className="mt-3 text-3xl text-slate-900">
+                {loading ? "Loading..." : `Rs. ${formatRate(item.value)}`}
+              </p>
+              <p className="mt-2 text-sm text-slate-600">per gram</p>
+            </div>
+          ))}
+        </div>
 
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
-                  <label htmlFor="gold22k" className="block text-gray-900 mb-2">
-                    22K Gold Rate (per gram)
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500">
-                      ₹
-                    </span>
-                    <input
-                      type="number"
-                      id="gold22k"
-                      name="gold22k"
-                      value={rates.gold22k}
-                      onChange={handleChange}
-                      required
-                      step="0.01"
-                      className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-yellow-600 focus:border-transparent"
-                      placeholder="6450"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label htmlFor="gold24k" className="block text-gray-900 mb-2">
-                    24K Gold Rate (per gram)
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500">
-                      ₹
-                    </span>
-                    <input
-                      type="number"
-                      id="gold24k"
-                      name="gold24k"
-                      value={rates.gold24k}
-                      onChange={handleChange}
-                      required
-                      step="0.01"
-                      className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-yellow-600 focus:border-transparent"
-                      placeholder="7020"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label htmlFor="silver" className="block text-gray-900 mb-2">
-                    Silver Rate (per gram)
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500">
-                      ₹
-                    </span>
-                    <input
-                      type="number"
-                      id="silver"
-                      name="silver"
-                      value={rates.silver}
-                      onChange={handleChange}
-                      required
-                      step="0.01"
-                      className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-yellow-600 focus:border-transparent"
-                      placeholder="82"
-                    />
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full flex items-center justify-center gap-2 px-8 py-4 bg-yellow-600 text-white rounded-xl hover:bg-yellow-700 transition-colors shadow-lg"
-                >
-                  <Save className="w-5 h-5" />
-                  Override & Publish Rates
-                </button>
-              </form>
-
-              <div className="mt-8 p-6 bg-yellow-50 border border-yellow-200 rounded-xl">
-                <h3 className="text-gray-900 mb-3 flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-yellow-600" />
-                  Manual Override Information
-                </h3>
-                <ul className="space-y-2 text-sm text-gray-600">
-                  <li>• Default: Rates auto-update daily from live data source</li>
-                  <li>• Override only when you need custom pricing</li>
-                  <li>• Manual updates will replace auto-synced rates</li>
-                  <li>• Changes are immediately visible to all customers</li>
-                  <li>• Last auto-sync: Today at 10:00 AM</li>
-                </ul>
+        <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-[1.05fr_0.95fr]">
+          <div className="rounded-[2rem] border border-[#eadfc5] bg-white p-6 shadow-sm">
+            <div className="flex items-start gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#fff3d1] text-[#b88a2f]">
+                <RefreshCw className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="text-2xl text-slate-900">Sync Status</h2>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  Rates refresh automatically every {refreshIntervalMinutes} minutes.
+                  Cached values are served if the external source is unavailable.
+                </p>
+                <p className="mt-3 text-sm text-slate-500">
+                  {loading
+                    ? "Checking the latest sync..."
+                    : `Last updated: ${formatLastUpdated(displayData.last_updated)}`}
+                </p>
               </div>
             </div>
+
+            {error && (
+              <div className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                  <span>{error}</span>
+                </div>
+              </div>
+            )}
+
+            {!error && isUsingFallback && (
+              <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                A cached fallback response is active right now. The customer-facing page
+                is protected from blank states even when the source site is unavailable.
+              </div>
+            )}
           </div>
 
-          {/* Current Rates Preview */}
-          <div className="space-y-6">
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-              <h3 className="text-gray-900 mb-4 flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-gray-600" />
-                Current Rates
-              </h3>
-              <div className="space-y-4">
-                <div className="p-4 bg-yellow-50 rounded-xl">
-                  <p className="text-sm text-gray-600 mb-1">22K Gold</p>
-                  <p className="text-2xl text-gray-900">₹{rates.gold22k}</p>
-                  <p className="text-xs text-gray-500 mt-1">per gram</p>
+          <div className="rounded-[2rem] border border-[#eadfc5] bg-white p-6 shadow-sm">
+            <h2 className="text-2xl text-slate-900">Operational Notes</h2>
+            <div className="mt-5 space-y-3">
+              {[
+                "The public gold-rate page consumes the same backend endpoint.",
+                "CORS is enabled for localhost and Vercel deployments.",
+                "A failed scrape falls back to cached data instead of breaking the UI.",
+                "Product pricing in the catalogue remains independent from metal-rate snapshots.",
+              ].map((item) => (
+                <div
+                  key={item}
+                  className="rounded-2xl border border-[#f0e6d2] bg-[#fffaf0] p-4 text-sm leading-6 text-slate-600"
+                >
+                  {item}
                 </div>
-                <div className="p-4 bg-yellow-50 rounded-xl">
-                  <p className="text-sm text-gray-600 mb-1">24K Gold</p>
-                  <p className="text-2xl text-gray-900">₹{rates.gold24k}</p>
-                  <p className="text-xs text-gray-500 mt-1">per gram</p>
-                </div>
-                <div className="p-4 bg-gray-50 rounded-xl">
-                  <p className="text-sm text-gray-600 mb-1">Silver</p>
-                  <p className="text-2xl text-gray-900">₹{rates.silver}</p>
-                  <p className="text-xs text-gray-500 mt-1">per gram</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-              <h3 className="text-gray-900 mb-4">Quick Calculator</h3>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-gray-600">10 grams (22K)</span>
-                  <span className="text-gray-900">
-                    ₹{(parseFloat(rates.gold22k) * 10).toFixed(2)}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-gray-600">10 grams (24K)</span>
-                  <span className="text-gray-900">
-                    ₹{(parseFloat(rates.gold24k) * 10).toFixed(2)}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-gray-600">100 grams (Silver)</span>
-                  <span className="text-gray-900">
-                    ₹{(parseFloat(rates.silver) * 100).toFixed(2)}
-                  </span>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
         </div>
 
-        {/* Rate History */}
-        <div className="mt-8 bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="p-6 border-b border-gray-200">
-            <h2 className="text-gray-900">Recent Updates</h2>
+        <div className="mt-6 rounded-[2rem] border border-[#eadfc5] bg-white p-6 shadow-sm">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="text-2xl text-slate-900">Recent Price History</h2>
+              <p className="mt-2 text-sm text-slate-600">
+                Snapshot of the latest rate history returned by the scraper endpoint.
+              </p>
+            </div>
+            <div className="inline-flex items-center gap-2 rounded-full bg-[#fff3d1] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[#b88a2f]">
+              <ShieldCheck className="h-4 w-4" />
+              Live backend feed
+            </div>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="text-left px-6 py-4 text-sm text-gray-700">
-                    Date
-                  </th>
-                  <th className="text-right px-6 py-4 text-sm text-gray-700">
-                    22K Gold (₹/gram)
-                  </th>
-                  <th className="text-right px-6 py-4 text-sm text-gray-700">
-                    24K Gold (₹/gram)
-                  </th>
-                  <th className="text-right px-6 py-4 text-sm text-gray-700">
-                    Silver (₹/gram)
-                  </th>
+
+          <div className="mt-6 overflow-x-auto">
+            <table className="w-full min-w-[640px]">
+              <thead>
+                <tr className="border-b border-[#eadfc5] text-left text-sm text-slate-500">
+                  <th className="px-4 py-3">Date</th>
+                  <th className="px-4 py-3 text-right">22K</th>
+                  <th className="px-4 py-3 text-right">24K</th>
+                  <th className="px-4 py-3 text-right">Silver</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody>
                 {history.map((row, index) => (
                   <tr
-                    key={row.date}
-                    className={index === 0 ? "bg-yellow-50" : "hover:bg-gray-50"}
+                    key={`${row.date}-${index}`}
+                    className="border-b border-[#f5eee2] text-sm text-slate-700"
                   >
-                    <td className="px-6 py-4 text-sm text-gray-900">
-                      {row.date}
-                      {index === 0 && (
-                        <span className="ml-2 text-xs text-yellow-600">(Today)</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-right text-gray-900">
-                      ₹{row.gold22k.toLocaleString()}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-right text-gray-900">
-                      ₹{row.gold24k.toLocaleString()}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-right text-gray-900">
-                      ₹{row.silver.toLocaleString()}
-                    </td>
+                    <td className="px-4 py-4">{row.date}</td>
+                    <td className="px-4 py-4 text-right">Rs. {formatRate(row.gold_22k)}</td>
+                    <td className="px-4 py-4 text-right">Rs. {formatRate(row.gold_24k)}</td>
+                    <td className="px-4 py-4 text-right">Rs. {formatRate(row.silver)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+
+          {history.length === 0 && !loading && (
+            <div className="mt-4 rounded-2xl border border-[#f0e6d2] bg-[#fffaf0] px-5 py-12 text-center text-sm text-slate-600">
+              No history records are available right now.
+            </div>
+          )}
         </div>
       </div>
     </div>

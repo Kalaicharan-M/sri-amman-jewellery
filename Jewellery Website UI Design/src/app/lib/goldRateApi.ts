@@ -1,10 +1,4 @@
-const DEFAULT_API_BASE_URL = import.meta.env.PROD
-  ? "https://jewellery-backend.onrender.com"
-  : "http://localhost:5000";
-
-const API_BASE_URL = (
-  import.meta.env.VITE_GOLD_RATE_API_URL || DEFAULT_API_BASE_URL
-).replace(/\/$/, "");
+import { buildApiUrl, fetchWithRetry } from "./api";
 
 export interface GoldRateHistoryRow {
   date: string;
@@ -39,7 +33,11 @@ export interface GoldRateResponse {
 export async function fetchGoldRates(
   signal?: AbortSignal,
 ): Promise<GoldRateResponse> {
-  const response = await fetch(`${API_BASE_URL}/gold-rate`, { signal });
+  const response = await fetchWithRetry(buildApiUrl("/gold-rate"), {
+    signal,
+    retries: 2,
+    retryDelayMs: 1500,
+  });
 
   if (!response.ok) {
     let errorMessage = "Unable to load live gold rates.";
