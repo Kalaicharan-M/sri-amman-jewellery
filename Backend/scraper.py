@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
+import threading
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
@@ -18,12 +20,18 @@ DATE_TIME_FORMAT = "%d/%b/%Y %I:%M:%S %p"
 DEFAULT_CACHE_FILE = Path(__file__).with_name("gold_rate_cache.json")
 CACHE_FILE = Path(os.getenv("GOLD_RATE_CACHE_FILE", str(DEFAULT_CACHE_FILE)))
 REQUEST_TIMEOUT = float(os.getenv("SCRAPER_TIMEOUT", "15"))
-CACHE_TTL_MINUTES = int(os.getenv("GOLD_RATE_CACHE_TTL_MINUTES", "5"))
+CACHE_TTL_MINUTES = int(os.getenv("GOLD_RATE_CACHE_TTL_MINUTES", "10"))
+BACKGROUND_REFRESH_INTERVAL_SECONDS = max(CACHE_TTL_MINUTES, 1) * 60
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
     "AppleWebKit/537.36 (KHTML, like Gecko) "
     "Chrome/123.0.0.0 Safari/537.36"
 )
+LOGGER = logging.getLogger(__name__)
+CACHE_REFRESH_LOCK = threading.Lock()
+BACKGROUND_UPDATER_LOCK = threading.Lock()
+BACKGROUND_UPDATER_EVENT = threading.Event()
+BACKGROUND_UPDATER_THREAD: threading.Thread | None = None
 
 GOLD_ROW_PATTERN = re.compile(
     r"^(?P<date>\d{1,2}/[A-Za-z]{3}/\d{4})$"
@@ -49,38 +57,97 @@ def _normalize_number(value: str) -> int | float:
     return int(number) if number.is_integer() else round(number, 2)
 
 
+def _get_cache_last_updated(cache: dict[str, Any]) -> str:
+    last_updated = cache.get("last_updated")
+    if isinstance(last_updated, str):
+        return last_updated
+
+    legacy_fetched_at = cache.get("fetched_at")
+    if isinstance(legacy_fetched_at, str):
+        return legacy_fetched_at
+
+    return ""
+
+
 def _load_cache() -> dict[str, Any] | None:
     if not CACHE_FILE.exists():
         return None
 
     try:
-        return json.loads(CACHE_FILE.read_text(encoding="utf-8"))
+        payload = json.loads(CACHE_FILE.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return None
 
+    if not isinstance(payload, dict) or "data" not in payload:
+        return None
 
-def _save_cache(data: dict[str, Any]) -> None:
+    return payload
+
+
+def _save_cache(data: dict[str, Any]) -> dict[str, Any]:
     CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
+    cache_updated_at = _now_ist().isoformat()
     payload = {
-        "fetched_at": _now_ist().isoformat(),
+        "last_updated": cache_updated_at,
         "data": data,
     }
     CACHE_FILE.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    return payload
 
 
 def _cache_is_fresh(cache: dict[str, Any]) -> bool:
-    fetched_at = cache.get("fetched_at")
-    if not isinstance(fetched_at, str):
+    cache_last_updated = _get_cache_last_updated(cache)
+    if not cache_last_updated:
         legacy_fetched_on = cache.get("fetched_on")
         return legacy_fetched_on == _now_ist().date().isoformat()
 
     try:
-        fetched_at_dt = datetime.fromisoformat(fetched_at)
+        fetched_at_dt = datetime.fromisoformat(cache_last_updated)
     except ValueError:
         return False
 
     age = _now_ist() - fetched_at_dt
     return age <= timedelta(minutes=CACHE_TTL_MINUTES)
+
+
+def _build_cached_response(
+    cache: dict[str, Any],
+    *,
+    source_status: str,
+    warning: str | None = None,
+    scrape_error: str | None = None,
+) -> dict[str, Any]:
+    cached_data = dict(cache["data"])
+    cached_data["served_from_cache"] = True
+    cached_data["source_status"] = source_status
+    cached_data["cache_ttl_minutes"] = CACHE_TTL_MINUTES
+    cache_last_updated = _get_cache_last_updated(cache)
+
+    if cache_last_updated:
+        cached_data["cache_last_updated"] = cache_last_updated
+
+    if warning:
+        cached_data["warning"] = warning
+    else:
+        cached_data.pop("warning", None)
+
+    if scrape_error:
+        cached_data["scrape_error"] = scrape_error
+    else:
+        cached_data.pop("scrape_error", None)
+
+    return cached_data
+
+
+def _build_live_response(data: dict[str, Any], cache_last_updated: str) -> dict[str, Any]:
+    live_response = dict(data)
+    live_response["served_from_cache"] = False
+    live_response["source_status"] = "live"
+    live_response["cache_ttl_minutes"] = CACHE_TTL_MINUTES
+    live_response["cache_last_updated"] = cache_last_updated
+    live_response.pop("warning", None)
+    live_response.pop("scrape_error", None)
+    return live_response
 
 
 def _fetch_livechennai_html() -> str:
@@ -274,31 +341,82 @@ def scrape_live_chennai_rates() -> dict[str, Any]:
     }
 
 
+def _refresh_cache_from_source(force_refresh: bool = False) -> dict[str, Any]:
+    cached = _load_cache()
+    if cached and not force_refresh and _cache_is_fresh(cached):
+        return _build_cached_response(cached, source_status="cache")
+
+    with CACHE_REFRESH_LOCK:
+        cached = _load_cache()
+        if cached and not force_refresh and _cache_is_fresh(cached):
+            return _build_cached_response(cached, source_status="cache")
+
+        live_data = scrape_live_chennai_rates()
+        cache_payload = _save_cache(live_data)
+        LOGGER.info("Gold rate cache updated at %s", cache_payload["last_updated"])
+        return _build_live_response(live_data, cache_payload["last_updated"])
+
+
+def _background_updater_loop() -> None:
+    LOGGER.info(
+        "Gold rate background updater started with a %s-minute interval.",
+        CACHE_TTL_MINUTES,
+    )
+
+    while True:
+        try:
+            cached = _load_cache()
+            if not cached or not _cache_is_fresh(cached):
+                _refresh_cache_from_source()
+        except GoldRateScraperError as exc:
+            LOGGER.warning("Gold rate background refresh failed: %s", exc)
+        except Exception:
+            LOGGER.exception("Unexpected error while updating the gold rate cache.")
+
+        BACKGROUND_UPDATER_EVENT.wait(timeout=BACKGROUND_REFRESH_INTERVAL_SECONDS)
+        BACKGROUND_UPDATER_EVENT.clear()
+
+
+def start_gold_rate_background_updater() -> bool:
+    global BACKGROUND_UPDATER_THREAD
+
+    with BACKGROUND_UPDATER_LOCK:
+        if BACKGROUND_UPDATER_THREAD and BACKGROUND_UPDATER_THREAD.is_alive():
+            return False
+
+        BACKGROUND_UPDATER_THREAD = threading.Thread(
+            target=_background_updater_loop,
+            name="gold-rate-cache-updater",
+            daemon=True,
+        )
+        BACKGROUND_UPDATER_THREAD.start()
+        return True
+
+
 def get_gold_rate_data(force_refresh: bool = False) -> dict[str, Any]:
     cached = _load_cache()
 
-    if cached and not force_refresh and _cache_is_fresh(cached):
-        cached_data = dict(cached["data"])
-        cached_data["served_from_cache"] = True
-        cached_data["cache_ttl_minutes"] = CACHE_TTL_MINUTES
-        return cached_data
+    if cached and not force_refresh:
+        if _cache_is_fresh(cached):
+            return _build_cached_response(cached, source_status="cache")
+
+        BACKGROUND_UPDATER_EVENT.set()
+        return _build_cached_response(
+            cached,
+            source_status="stale_cache",
+            warning="Serving the latest cached rates while a background refresh runs.",
+        )
 
     try:
-        live_data = scrape_live_chennai_rates()
-        live_data["served_from_cache"] = False
-        live_data["cache_ttl_minutes"] = CACHE_TTL_MINUTES
-        _save_cache(live_data)
-        return live_data
+        return _refresh_cache_from_source(force_refresh=force_refresh)
     except GoldRateScraperError as exc:
         if cached and "data" in cached:
-            cached_data = dict(cached["data"])
-            cached_data["served_from_cache"] = True
-            cached_data["source_status"] = "stale_cache"
-            cached_data["cache_ttl_minutes"] = CACHE_TTL_MINUTES
-            cached_data["warning"] = (
-                "Serving the latest cached rates because the live scrape failed."
+            LOGGER.warning("Gold rate refresh failed; serving cached data instead: %s", exc)
+            return _build_cached_response(
+                cached,
+                source_status="stale_cache",
+                warning="Serving the latest cached rates because the live scrape failed.",
+                scrape_error=str(exc),
             )
-            cached_data["scrape_error"] = str(exc)
-            return cached_data
 
         raise

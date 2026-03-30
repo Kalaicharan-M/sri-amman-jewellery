@@ -16,7 +16,11 @@ from product_store import (
     ProductStore,
     ProductValidationError,
 )
-from scraper import GoldRateScraperError, get_gold_rate_data
+from scraper import (
+    GoldRateScraperError,
+    get_gold_rate_data,
+    start_gold_rate_background_updater,
+)
 
 BASE_DIR = Path(__file__).resolve().parent
 ALLOWED_IMAGE_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
@@ -208,6 +212,14 @@ def _unauthorized_response():
     return jsonify({"error": "Admin login required."}), 401
 
 
+def _should_start_background_updater():
+    debug_enabled = os.getenv("FLASK_DEBUG", "false").lower() == "true"
+    if debug_enabled and os.environ.get("WERKZEUG_RUN_MAIN") != "true":
+        return False
+
+    return True
+
+
 def create_app():
     app = Flask(__name__)
     app.config["JSON_SORT_KEYS"] = False
@@ -381,6 +393,14 @@ def create_app():
         except Exception:
             app.logger.exception("Unexpected error while serving /gold-rate")
             return jsonify({"error": "Unexpected server error."}), 500
+
+    if _should_start_background_updater():
+        if start_gold_rate_background_updater():
+            app.logger.info("Gold rate background updater started.")
+    else:
+        app.logger.info(
+            "Skipping gold rate background updater startup in the reload parent process."
+        )
 
     return app
 
