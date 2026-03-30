@@ -20,7 +20,7 @@ export const FALLBACK_GOLD_RATE_RESPONSE: GoldRateResponse = {
     silver: { change: -1, change_percent: -1.2 },
   },
   source_status: "fallback",
-  cache_ttl_minutes: 10,
+  cache_ttl_minutes: 5,
 };
 
 const currencyFormatter = new Intl.NumberFormat("en-IN", {

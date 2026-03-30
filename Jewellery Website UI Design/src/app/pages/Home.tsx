@@ -46,7 +46,7 @@ export function Home() {
     };
   });
 
-  const refreshIntervalMinutes = displayData.cache_ttl_minutes ?? 10;
+  const refreshIntervalMinutes = displayData.cache_ttl_minutes ?? 5;
 
   return (
     <div className="overflow-x-hidden bg-[#fffdf8]">

@@ -8,7 +8,7 @@ import { formatLastUpdated, formatRate } from "../../lib/goldRateDisplay";
 export function AdminGoldRate() {
   const session = getAdminSession();
   const { displayData, loading, error, isUsingFallback } = useGoldRates();
-  const refreshIntervalMinutes = displayData.cache_ttl_minutes ?? 10;
+  const refreshIntervalMinutes = displayData.cache_ttl_minutes ?? 5;
   const history = displayData.history ?? [];
 
   if (!session) {

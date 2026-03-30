@@ -18,7 +18,7 @@ DATE_TIME_FORMAT = "%d/%b/%Y %I:%M:%S %p"
 DEFAULT_CACHE_FILE = Path(__file__).with_name("gold_rate_cache.json")
 CACHE_FILE = Path(os.getenv("GOLD_RATE_CACHE_FILE", str(DEFAULT_CACHE_FILE)))
 REQUEST_TIMEOUT = float(os.getenv("SCRAPER_TIMEOUT", "15"))
-CACHE_TTL_MINUTES = int(os.getenv("GOLD_RATE_CACHE_TTL_MINUTES", "10"))
+CACHE_TTL_MINUTES = int(os.getenv("GOLD_RATE_CACHE_TTL_MINUTES", "5"))
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
     "AppleWebKit/537.36 (KHTML, like Gecko) "

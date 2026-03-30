@@ -115,7 +115,7 @@ export function GoldRate() {
   const { goldRates, displayData, loading, error } = useGoldRates();
   const history = displayData.history ?? FALLBACK_GOLD_RATE_RESPONSE.history ?? [];
   const isUsingFallback = !goldRates;
-  const refreshIntervalMinutes = displayData.cache_ttl_minutes ?? 10;
+  const refreshIntervalMinutes = displayData.cache_ttl_minutes ?? 5;
   const cachedStatusMessage =
     displayData.source_status === "stale_cache"
       ? displayData.warning || "Showing the latest cached rates."
