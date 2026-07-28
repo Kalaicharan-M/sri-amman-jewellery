@@ -33,6 +33,15 @@ BACKGROUND_UPDATER_LOCK = threading.Lock()
 BACKGROUND_UPDATER_EVENT = threading.Event()
 BACKGROUND_UPDATER_THREAD: threading.Thread | None = None
 
+try:
+    import lxml  # noqa: F401
+
+    HTML_PARSER = "lxml"
+except ImportError:
+    HTML_PARSER = "html.parser"
+
+_HTTP_SESSION = requests.Session()
+
 GOLD_ROW_PATTERN = re.compile(
     r"^(?P<date>\d{1,2}/[A-Za-z]{3}/\d{4})$"
 )
@@ -152,7 +161,7 @@ def _build_live_response(data: dict[str, Any], cache_last_updated: str) -> dict[
 
 def _fetch_livechennai_html() -> str:
     try:
-        response = requests.get(
+        response = _HTTP_SESSION.get(
             LIVE_CHENNAI_URL,
             headers={"User-Agent": USER_AGENT},
             timeout=REQUEST_TIMEOUT,
@@ -165,18 +174,12 @@ def _fetch_livechennai_html() -> str:
     return response.text
 
 
-def _extract_lines(html: str) -> list[str]:
-    soup = BeautifulSoup(html, "html.parser")
-
-    for element in soup(["script", "style", "noscript"]):
-        element.decompose()
-
+def _extract_lines(soup: BeautifulSoup) -> list[str]:
     text = soup.get_text("\n", strip=True)
     return [re.sub(r"\s+", " ", line).strip() for line in text.splitlines() if line.strip()]
 
 
-def _extract_table_rows(html: str) -> list[list[str]]:
-    soup = BeautifulSoup(html, "html.parser")
+def _extract_table_rows(soup: BeautifulSoup) -> list[list[str]]:
     rows: list[list[str]] = []
 
     for row in soup.find_all("tr"):
@@ -310,8 +313,13 @@ def _build_change_summary(
 
 def scrape_live_chennai_rates() -> dict[str, Any]:
     html = _fetch_livechennai_html()
-    lines = _extract_lines(html)
-    table_rows = _extract_table_rows(html)
+    soup = BeautifulSoup(html, HTML_PARSER)
+
+    table_rows = _extract_table_rows(soup)
+
+    for element in soup(["script", "style", "noscript"]):
+        element.decompose()
+    lines = _extract_lines(soup)
 
     gold_rows = _extract_gold_rows(table_rows)
     silver_rows = _extract_silver_rows(table_rows)
