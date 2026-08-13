@@ -65,8 +65,8 @@ export function Products() {
             Explore premium designs crafted for weddings, gifting, and everyday elegance.
           </h1>
           <p className="mt-4 max-w-3xl text-base leading-7 text-slate-600 sm:text-lg">
-            Browse dynamic product listings from the Flask backend, filter by category,
-            and discover styles that balance heritage detail with a refined modern finish.
+            Browse our full collection, filter by category, and discover styles that
+            balance heritage detail with a refined modern finish.
           </p>
         </div>
       </section>
@@ -115,7 +115,7 @@ export function Products() {
 
           <div className="mt-5 flex flex-col gap-2 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
             <p>{loading ? "Loading products..." : `Showing ${filteredProducts.length} designs`}</p>
-            <p>Mobile-first browsing with live product data from Flask</p>
+            <p>Updated in real time as our catalogue changes</p>
           </div>
         </div>
 

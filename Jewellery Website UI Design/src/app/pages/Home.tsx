@@ -93,7 +93,7 @@ export function Home() {
               {[
                 { label: "Hallmarked trust", value: "BIS" },
                 { label: "Live rate sync", value: `${refreshIntervalMinutes} min` },
-                { label: "Store legacy", value: "30+ yrs" },
+                { label: "Founded", value: "2025" },
               ].map((item) => (
                 <div
                   key={item.label}

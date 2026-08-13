@@ -160,7 +160,7 @@ export function GoldRate() {
           <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600">
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
             <span className="font-medium">
-              Data is served by the Flask backend and refreshed every {refreshIntervalMinutes} minutes
+              Rates are refreshed automatically every {refreshIntervalMinutes} minutes
             </span>
           </div>
           <p className="text-sm text-gray-500 mt-2">
@@ -317,7 +317,7 @@ export function GoldRate() {
           <div className="p-4 sm:p-6 border-b border-gray-200">
             <h2 className="text-gray-900">Price History</h2>
             <p className="text-sm text-gray-600 mt-1">
-              Recent precious metal updates from the backend scraper
+              Recent precious metal rate updates
             </p>
           </div>
 
@@ -366,8 +366,8 @@ export function GoldRate() {
           <div className="bg-gradient-to-br from-blue-50 to-white rounded-lg p-5 sm:p-6 border border-blue-200 shadow-sm">
             <h3 className="text-gray-900 mb-4">Rate Information</h3>
             <div className="space-y-3 text-sm text-gray-600">
-              <p>- Live scraping is automatically refreshed every {refreshIntervalMinutes} minutes.</p>
-              <p>- Cached data is served if the source website is temporarily down.</p>
+              <p>- Live rates are automatically refreshed every {refreshIntervalMinutes} minutes.</p>
+              <p>- Cached data is served if the source is temporarily unavailable.</p>
               <p>- Jewellery making charges are separate and vary by design.</p>
               <p>- Contact the store for custom quotes and bulk purchase support.</p>
             </div>

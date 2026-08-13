@@ -21,7 +21,7 @@ export function About() {
       icon: <Users className="w-8 h-8" />,
       title: "Expert Craftsmanship",
       description:
-        "Our master artisans bring decades of experience, blending traditional techniques with modern designs.",
+        "Our skilled artisans blend traditional techniques with modern designs in every piece.",
     },
     {
       icon: <Heart className="w-8 h-8" />,
@@ -34,33 +34,6 @@ export function About() {
       title: "Fair Pricing",
       description:
         "Transparent pricing with daily updated gold rates and competitive making charges.",
-    },
-  ];
-
-  const milestones = [
-    {
-      year: "1990",
-      title: "Foundation",
-      description:
-        "Sri Amman Jewellery was founded with a vision to provide authentic gold jewellery.",
-    },
-    {
-      year: "2000",
-      title: "Expansion",
-      description:
-        "Opened our flagship showroom and expanded our collection to include diamonds.",
-    },
-    {
-      year: "2015",
-      title: "Recognition",
-      description:
-        "Awarded 'Most Trusted Jeweller' by the regional trade association.",
-    },
-    {
-      year: "2026",
-      title: "Today",
-      description:
-        "Serving thousands of satisfied customers with 500+ unique designs.",
     },
   ];
 
@@ -78,8 +51,8 @@ export function About() {
               Our Story
             </h1>
             <p className="text-base sm:text-xl lg:text-2xl text-gray-700 leading-relaxed">
-              Over three decades of excellence in crafting timeless jewellery
-              that celebrates life&apos;s precious moments.
+              A fresh chapter in fine jewellery, crafting pieces that celebrate
+              life&apos;s precious moments with authenticity and care.
             </p>
           </div>
         </div>
@@ -88,25 +61,23 @@ export function About() {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
         <div className="grid lg:grid-cols-2 gap-8 sm:gap-12 items-center">
           <div className="space-y-4 sm:space-y-6">
-            <h2 className="text-gray-900">A Legacy of Trust</h2>
+            <h2 className="text-gray-900">Built on Trust</h2>
 
             <div className="space-y-4 text-gray-600 leading-relaxed">
               <p>
-                Founded in 1990, Sri Amman Jewellery began as a small family business
-                with a simple yet powerful mission: to provide authentic, high-quality
-                gold jewellery that our customers could trust for generations.
+                Founded in 2025, Sri Amman Jewellery began with a simple yet powerful
+                mission: to provide authentic, high-quality gold jewellery that our
+                customers can trust from day one.
               </p>
               <p>
-                What started with a modest collection has grown into a comprehensive
-                showcase of over 500 unique designs, each piece crafted with meticulous
-                attention to detail by our skilled artisans. Our journey has been guided
-                by the values of integrity, craftsmanship, and customer satisfaction.
+                Every piece in our growing collection is crafted with meticulous
+                attention to detail by our skilled artisans, guided by the values of
+                integrity, craftsmanship, and customer satisfaction.
               </p>
               <p>
-                Today, we stand proud as one of the most trusted jewellers in the region,
-                serving thousands of satisfied customers who have made us part of their
-                most cherished celebrations, from weddings to anniversaries, and every
-                special moment in between.
+                As a new name in the region, we are committed to earning that trust
+                one customer and one celebration at a time, from weddings to
+                anniversaries and every special moment in between.
               </p>
             </div>
           </div>
@@ -148,45 +119,6 @@ export function About() {
         </div>
       </section>
 
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
-        <div className="text-center mb-8 sm:mb-12">
-          <h2 className="text-gray-900 mb-4">Our Journey</h2>
-          <p className="text-base sm:text-xl text-gray-600">Key milestones in our story</p>
-        </div>
-
-        <div className="relative">
-          <div className="lg:hidden absolute left-3 top-0 bottom-0 w-px bg-yellow-200"></div>
-          <div className="hidden lg:block absolute left-1/2 transform -translate-x-1/2 h-full w-0.5 bg-gradient-to-b from-yellow-400 to-yellow-600"></div>
-
-          <div className="space-y-5 sm:space-y-8">
-            {milestones.map((milestone, index) => (
-              <div
-                key={index}
-                className="relative grid lg:grid-cols-2 gap-4 sm:gap-8 items-center"
-              >
-                <div
-                  className={`relative pl-10 lg:pl-0 ${
-                    index % 2 === 0 ? "lg:text-right lg:pr-12" : "lg:col-start-2 lg:pl-12"
-                  }`}
-                >
-                  <div className="absolute left-0 top-6 w-6 h-6 bg-yellow-600 rounded-full border-4 border-white shadow-sm lg:hidden"></div>
-                  <div className="bg-white rounded-lg p-5 sm:p-6 shadow-sm border border-gray-200">
-                    <span className="inline-block px-4 py-2 bg-yellow-100 text-yellow-800 rounded-lg mb-4">
-                      {milestone.year}
-                    </span>
-                    <h3 className="text-gray-900 mb-3">{milestone.title}</h3>
-                    <p className="text-gray-600">{milestone.description}</p>
-                  </div>
-                </div>
-
-                <div className="hidden lg:block absolute left-1/2 transform -translate-x-1/2 w-6 h-6 bg-yellow-600 rounded-full border-4 border-white shadow-lg"></div>
-                <div className={`hidden lg:block ${index % 2 === 0 ? "lg:col-start-2" : ""}`}></div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       <section className="bg-gradient-to-br from-yellow-50 to-white py-10 sm:py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
@@ -194,16 +126,16 @@ export function About() {
               <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 bg-yellow-100 rounded-full mb-4 sm:mb-6">
                 <Shield className="w-10 h-10 text-yellow-600" />
               </div>
-              <h3 className="text-gray-900 mb-2">30+ Years</h3>
-              <p className="text-gray-600">Of trusted service</p>
+              <h3 className="text-gray-900 mb-2">Est. 2025</h3>
+              <p className="text-gray-600">A new beginning built on trust</p>
             </div>
 
             <div className="text-center bg-white/80 rounded-lg shadow-sm border border-yellow-100 p-6">
               <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 bg-yellow-100 rounded-full mb-4 sm:mb-6">
                 <Users className="w-10 h-10 text-yellow-600" />
               </div>
-              <h3 className="text-gray-900 mb-2">10,000+</h3>
-              <p className="text-gray-600">Happy customers</p>
+              <h3 className="text-gray-900 mb-2">Personalized</h3>
+              <p className="text-gray-600">Service for every customer</p>
             </div>
 
             <div className="text-center bg-white/80 rounded-lg shadow-sm border border-yellow-100 p-6">

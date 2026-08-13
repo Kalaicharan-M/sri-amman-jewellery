@@ -27,7 +27,7 @@ export function AdminGoldRate() {
           </h1>
           <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600 sm:text-base">
             Review the live rate feed, confirm fallback behavior, and check recent
-            price history served by the Flask scraper endpoint.
+            price history from the backend.
           </p>
         </div>
 
@@ -100,7 +100,7 @@ export function AdminGoldRate() {
               {[
                 "The public gold-rate page consumes the same backend endpoint.",
                 "CORS is enabled for localhost and Vercel deployments.",
-                "A failed scrape falls back to cached data instead of breaking the UI.",
+                "A failed live fetch falls back to cached data instead of breaking the UI.",
                 "Product pricing in the catalogue remains independent from metal-rate snapshots.",
                 "The rate card image regenerates automatically whenever the rate changes.",
               ].map((item) => (
@@ -120,7 +120,7 @@ export function AdminGoldRate() {
             <div>
               <h2 className="text-2xl text-slate-900">Recent Price History</h2>
               <p className="mt-2 text-sm text-slate-600">
-                Snapshot of the latest rate history returned by the scraper endpoint.
+                Snapshot of the latest rate history from the live feed.
               </p>
             </div>
             <div className="inline-flex items-center gap-2 rounded-full bg-[#fff3d1] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[#b88a2f]">
