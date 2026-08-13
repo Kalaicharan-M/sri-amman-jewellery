@@ -36,18 +36,28 @@ POLL_INTERVAL_MINUTES = int(os.getenv("RATE_CARD_POLL_INTERVAL_MINUTES", "5"))
 
 GOLD_SOVEREIGN_GRAMS = 8
 
-# Measured from the sample template (1280x908). Each box is drawn over the
-# template to cover the previous day's baked-in numbers and host the new text.
+# Measured from the sample template (1280x908). Each box marks where the
+# previous day's baked-in numbers sit; that area gets patched over with
+# cloned leaf texture before the new text is drawn directly on top of it.
 DATE_BOX = (505, 610, 760, 675)
 GOLD_LINE1_BOX = (110, 688, 535, 750)
 GOLD_LINE2_BOX = (110, 748, 590, 810)
 SILVER_BOX = (650, 708, 1015, 768)
 
-BOX_FILL_COLOR = (13, 56, 39)
+# A texture-only strip (pure leaves, no baked-in text) used to patch over the
+# dynamic fields above. Measured/verified against the sample template.
+CLEAN_TEXTURE_BOX = (0, 800, 1280, 908)
+
+# The static heading banner behind the Tamil labels, made translucent by
+# blending it with cloned leaf texture rather than left fully opaque.
+HEADING_BANNER_BOX = (100, 552, 1155, 620)
+HEADING_BANNER_OPACITY = 0.72
+
 TEXT_COLOR_WHITE = (255, 255, 255)
 TEXT_COLOR_GOLD = (247, 224, 150)
+TEXT_STROKE_COLOR = (20, 40, 20)
+TEXT_STROKE_WIDTH = 2
 BOX_PADDING = 8
-BOX_RADIUS = 12
 
 LOGGER = logging.getLogger(__name__)
 CARD_GENERATION_LOCK = threading.Lock()
@@ -102,7 +112,38 @@ def _load_font(size: int) -> ImageFont.FreeTypeFont:
     return ImageFont.truetype(str(FONT_PATH), size)
 
 
+def _texture_patch(template: Image.Image, width: int, height: int, x_align: int) -> Image.Image:
+    src_x0, src_y0, src_x1, src_y1 = CLEAN_TEXTURE_BOX
+    src_width = src_x1 - src_x0
+    src_height = min(height, src_y1 - src_y0)
+
+    start_x = src_x0 + (x_align % src_width)
+    end_x = start_x + width
+
+    if end_x <= src_x1:
+        patch = template.crop((start_x, src_y0, end_x, src_y0 + src_height))
+    else:
+        first = template.crop((start_x, src_y0, src_x1, src_y0 + src_height))
+        remaining = width - first.width
+        second = template.crop((src_x0, src_y0, src_x0 + remaining, src_y0 + src_height))
+        patch = Image.new("RGB", (width, src_height))
+        patch.paste(first, (0, 0))
+        patch.paste(second, (first.width, 0))
+
+    if patch.height < height:
+        patch = patch.resize((width, height))
+
+    return patch
+
+
+def _cover_with_texture(template: Image.Image, box: tuple[int, int, int, int]) -> None:
+    x0, y0, x1, y1 = box
+    patch = _texture_patch(template, x1 - x0, y1 - y0, x_align=x0)
+    template.paste(patch, (x0, y0))
+
+
 def _draw_field(
+    template: Image.Image,
     draw: ImageDraw.ImageDraw,
     box: tuple[int, int, int, int],
     text: str,
@@ -111,16 +152,31 @@ def _draw_field(
 ) -> None:
     x0, y0, x1, y1 = box
     padded_box = (x0 - BOX_PADDING, y0 - BOX_PADDING, x1 + BOX_PADDING, y1 + BOX_PADDING)
-    draw.rounded_rectangle(padded_box, radius=BOX_RADIUS, fill=BOX_FILL_COLOR)
+    _cover_with_texture(template, padded_box)
 
-    text_bbox = draw.textbbox((0, 0), text, font=font)
+    text_bbox = draw.textbbox((0, 0), text, font=font, stroke_width=TEXT_STROKE_WIDTH)
     text_width = text_bbox[2] - text_bbox[0]
     text_height = text_bbox[3] - text_bbox[1]
 
     center_x = x0 + ((x1 - x0) - text_width) / 2 - text_bbox[0]
     center_y = y0 + ((y1 - y0) - text_height) / 2 - text_bbox[1]
 
-    draw.text((center_x, center_y), text, font=font, fill=text_color)
+    draw.text(
+        (center_x, center_y),
+        text,
+        font=font,
+        fill=text_color,
+        stroke_width=TEXT_STROKE_WIDTH,
+        stroke_fill=TEXT_STROKE_COLOR,
+    )
+
+
+def _apply_translucent_banner(template: Image.Image) -> None:
+    x0, y0, x1, y1 = HEADING_BANNER_BOX
+    banner_region = template.crop((x0, y0, x1, y1))
+    texture_patch = _texture_patch(template, x1 - x0, y1 - y0, x_align=x0)
+    blended = Image.blend(texture_patch, banner_region, HEADING_BANNER_OPACITY)
+    template.paste(blended, (x0, y0))
 
 
 def render_rate_card(data: dict[str, Any]) -> Image.Image:
@@ -128,6 +184,7 @@ def render_rate_card(data: dict[str, Any]) -> Image.Image:
         raise RateCardError(f"Rate card template not found at {TEMPLATE_PATH}.")
 
     template = Image.open(TEMPLATE_PATH).convert("RGB")
+    _apply_translucent_banner(template)
     draw = ImageDraw.Draw(template)
 
     gold_1gm = data["gold_22k"]
@@ -137,8 +194,9 @@ def render_rate_card(data: dict[str, Any]) -> Image.Image:
     rate_font = _load_font(34)
     date_font = _load_font(32)
 
-    _draw_field(draw, DATE_BOX, _format_display_date(data), date_font, TEXT_COLOR_GOLD)
+    _draw_field(template, draw, DATE_BOX, _format_display_date(data), date_font, TEXT_COLOR_GOLD)
     _draw_field(
+        template,
         draw,
         GOLD_LINE1_BOX,
         f"1 GM  - Rs.{format_inr(gold_1gm)}",
@@ -146,6 +204,7 @@ def render_rate_card(data: dict[str, Any]) -> Image.Image:
         TEXT_COLOR_WHITE,
     )
     _draw_field(
+        template,
         draw,
         GOLD_LINE2_BOX,
         f"8 GM  - Rs.{format_inr(gold_8gm)}",
@@ -153,6 +212,7 @@ def render_rate_card(data: dict[str, Any]) -> Image.Image:
         TEXT_COLOR_WHITE,
     )
     _draw_field(
+        template,
         draw,
         SILVER_BOX,
         f"1 GM  -  Rs.{format_inr(silver_1gm)}",

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   AlertCircle,
   Download,
@@ -18,7 +19,7 @@ import {
   formatLastUpdated,
   formatRate,
 } from "../lib/goldRateDisplay";
-import { buildRateCardImageUrl } from "../lib/rateCardApi";
+import { buildRateCardImageUrl, downloadRateCardImage } from "../lib/rateCardApi";
 
 function ChangeSummary({ change }: { change?: GoldRateChange | null }) {
   if (!change) {
@@ -125,6 +126,26 @@ export function GoldRate() {
       ? displayData.warning || "Showing the latest cached rates."
       : null;
   const rateCardImageUrl = rateCardMeta ? buildRateCardImageUrl(rateCardMeta) : null;
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState(false);
+
+  async function handleDownload() {
+    if (!rateCardMeta) {
+      return;
+    }
+
+    try {
+      setDownloading(true);
+      setDownloadError(null);
+      await downloadRateCardImage(rateCardMeta);
+    } catch (error) {
+      setDownloadError(
+        error instanceof Error ? error.message : "Unable to download the rate card image.",
+      );
+    } finally {
+      setDownloading(false);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-10 sm:py-16 overflow-x-clip">
@@ -163,14 +184,15 @@ export function GoldRate() {
               </p>
             </div>
             {rateCardImageUrl && (
-              <a
-                href={rateCardImageUrl}
-                download={`sri-amman-rate-card-${rateCardMeta?.data_date?.replace(/\//g, "-") ?? "today"}.png`}
-                className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors shadow-sm text-sm"
+              <button
+                type="button"
+                onClick={handleDownload}
+                disabled={downloading}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors shadow-sm text-sm disabled:cursor-not-allowed disabled:opacity-70"
               >
                 <Download className="w-4 h-4" />
-                Download Image
-              </a>
+                {downloading ? "Downloading..." : "Download Image"}
+              </button>
             )}
           </div>
 
@@ -183,6 +205,13 @@ export function GoldRate() {
               <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-4 text-red-700">
                 <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
                 <p className="text-sm">{rateCardError}</p>
+              </div>
+            )}
+
+            {downloadError && (
+              <div className="mb-4 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-4 text-red-700">
+                <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                <p className="text-sm">{downloadError}</p>
               </div>
             )}
 
