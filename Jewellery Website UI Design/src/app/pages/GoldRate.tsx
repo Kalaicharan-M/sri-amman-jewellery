@@ -1,11 +1,13 @@
 import {
   AlertCircle,
+  Download,
   RefreshCw,
   TrendingDown,
   TrendingUp,
 } from "lucide-react";
 
 import { useGoldRates } from "../hooks/useGoldRates";
+import { useRateCard } from "../hooks/useRateCard";
 import {
   type GoldRateChange,
   type GoldRateHistoryRow,
@@ -16,6 +18,7 @@ import {
   formatLastUpdated,
   formatRate,
 } from "../lib/goldRateDisplay";
+import { buildRateCardImageUrl } from "../lib/rateCardApi";
 
 function ChangeSummary({ change }: { change?: GoldRateChange | null }) {
   if (!change) {
@@ -113,6 +116,7 @@ function LoadingHistory() {
 
 export function GoldRate() {
   const { goldRates, displayData, loading, error } = useGoldRates();
+  const { meta: rateCardMeta, loading: rateCardLoading, error: rateCardError } = useRateCard();
   const history = displayData.history ?? FALLBACK_GOLD_RATE_RESPONSE.history ?? [];
   const isUsingFallback = !goldRates;
   const refreshIntervalMinutes = displayData.cache_ttl_minutes ?? 5;
@@ -120,6 +124,7 @@ export function GoldRate() {
     displayData.source_status === "stale_cache"
       ? displayData.warning || "Showing the latest cached rates."
       : null;
+  const rateCardImageUrl = rateCardMeta ? buildRateCardImageUrl(rateCardMeta) : null;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-10 sm:py-16 overflow-x-clip">
@@ -140,8 +145,55 @@ export function GoldRate() {
           <p className="text-sm text-gray-500 mt-2">
             {loading
               ? "Fetching the latest live rates..."
-              : `Last updated: ${formatLastUpdated(displayData.last_updated)}`}
+              : `Rate last changed: ${formatLastUpdated(displayData.last_updated)}`}
           </p>
+          {!loading && displayData.cache_last_updated && (
+            <p className="text-xs text-gray-400 mt-1">
+              System last checked: {formatLastUpdated(displayData.cache_last_updated)}
+            </p>
+          )}
+        </div>
+
+        <div className="mb-6 sm:mb-8 rounded-lg border border-gray-200 bg-white p-4 sm:p-6 shadow-sm">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h2 className="text-gray-900">Today&apos;s Rate Card</h2>
+              <p className="text-sm text-gray-600 mt-1">
+                Shareable rate card image, refreshed automatically whenever the rate changes.
+              </p>
+            </div>
+            {rateCardImageUrl && (
+              <a
+                href={rateCardImageUrl}
+                download={`sri-amman-rate-card-${rateCardMeta?.data_date?.replace(/\//g, "-") ?? "today"}.png`}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors shadow-sm text-sm"
+              >
+                <Download className="w-4 h-4" />
+                Download Image
+              </a>
+            )}
+          </div>
+
+          <div className="mt-4">
+            {rateCardLoading && (
+              <div className="aspect-[1280/908] w-full max-w-xl bg-gray-200 rounded-lg animate-pulse"></div>
+            )}
+
+            {!rateCardLoading && rateCardError && (
+              <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-4 text-red-700">
+                <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                <p className="text-sm">{rateCardError}</p>
+              </div>
+            )}
+
+            {!rateCardLoading && rateCardImageUrl && (
+              <img
+                src={rateCardImageUrl}
+                alt="Today's gold and silver rate card"
+                className="w-full max-w-xl rounded-lg border border-gray-200 shadow-sm"
+              />
+            )}
+          </div>
         </div>
 
         {error && (

@@ -59,14 +59,21 @@ export function AdminGoldRate() {
               <div>
                 <h2 className="text-2xl text-slate-900">Sync Status</h2>
                 <p className="mt-2 text-sm leading-6 text-slate-600">
-                  Rates refresh automatically every {refreshIntervalMinutes} minutes.
-                  Cached values are served if the external source is unavailable.
+                  The backend checks the source every {refreshIntervalMinutes} minutes.
+                  Cached values are served if the external source is unavailable. The
+                  rate itself only changes when the source republishes it, so the same
+                  value may persist for hours between the source's own updates.
                 </p>
                 <p className="mt-3 text-sm text-slate-500">
                   {loading
                     ? "Checking the latest sync..."
-                    : `Last updated: ${formatLastUpdated(displayData.last_updated)}`}
+                    : `Rate last changed: ${formatLastUpdated(displayData.last_updated)}`}
                 </p>
+                {!loading && displayData.cache_last_updated && (
+                  <p className="mt-1 text-xs text-slate-400">
+                    System last checked: {formatLastUpdated(displayData.cache_last_updated)}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -95,6 +102,7 @@ export function AdminGoldRate() {
                 "CORS is enabled for localhost and Vercel deployments.",
                 "A failed scrape falls back to cached data instead of breaking the UI.",
                 "Product pricing in the catalogue remains independent from metal-rate snapshots.",
+                "The rate card image regenerates automatically whenever the rate changes.",
               ].map((item) => (
                 <div
                   key={item}

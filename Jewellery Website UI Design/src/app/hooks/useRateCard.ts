@@ -1,12 +1,11 @@
 import { useEffect, useState } from "react";
 
-import { fetchGoldRates, type GoldRateResponse } from "../lib/goldRateApi";
-import { FALLBACK_GOLD_RATE_RESPONSE } from "../lib/goldRateDisplay";
+import { fetchRateCardMeta, type RateCardMeta } from "../lib/rateCardApi";
 
 const POLL_INTERVAL_MS = 60_000;
 
-export function useGoldRates() {
-  const [goldRates, setGoldRates] = useState<GoldRateResponse | null>(null);
+export function useRateCard() {
+  const [meta, setMeta] = useState<RateCardMeta | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -14,13 +13,13 @@ export function useGoldRates() {
     const controller = new AbortController();
     let isFirstLoad = true;
 
-    async function loadGoldRates() {
+    async function loadMeta() {
       try {
         if (isFirstLoad) {
           setLoading(true);
         }
-        const response = await fetchGoldRates(controller.signal);
-        setGoldRates(response);
+        const response = await fetchRateCardMeta(controller.signal);
+        setMeta(response);
         setError(null);
       } catch (fetchError) {
         if (controller.signal.aborted) {
@@ -30,7 +29,7 @@ export function useGoldRates() {
         setError(
           fetchError instanceof Error
             ? fetchError.message
-            : "Unable to load live gold rates.",
+            : "Unable to load today's rate card right now.",
         );
       } finally {
         if (!controller.signal.aborted) {
@@ -40,8 +39,8 @@ export function useGoldRates() {
       }
     }
 
-    void loadGoldRates();
-    const intervalId = window.setInterval(() => void loadGoldRates(), POLL_INTERVAL_MS);
+    void loadMeta();
+    const intervalId = window.setInterval(() => void loadMeta(), POLL_INTERVAL_MS);
 
     return () => {
       controller.abort();
@@ -49,11 +48,5 @@ export function useGoldRates() {
     };
   }, []);
 
-  return {
-    goldRates,
-    displayData: goldRates ?? FALLBACK_GOLD_RATE_RESPONSE,
-    loading,
-    error,
-    isUsingFallback: !goldRates,
-  };
+  return { meta, loading, error };
 }

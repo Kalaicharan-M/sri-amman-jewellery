@@ -22,12 +22,12 @@ import {
 
 function ProductCardSkeleton() {
   return (
-    <div className="overflow-hidden rounded-2xl border border-[#f0e6d2] bg-white shadow-md">
-      <div className="h-[220px] animate-pulse bg-[#f4ead6]" />
+    <div className="overflow-hidden rounded-2xl border border-[#f0e6d2] bg-white shadow-sm">
+      <div className="aspect-[4/5] animate-pulse bg-[#f4ead6]" />
       <div className="space-y-3 p-4">
-        <div className="h-4 w-24 animate-pulse rounded bg-[#f4ead6]" />
-        <div className="h-6 w-2/3 animate-pulse rounded bg-[#f4ead6]" />
-        <div className="h-4 w-1/2 animate-pulse rounded bg-[#f4ead6]" />
+        <div className="h-3 w-20 animate-pulse rounded bg-[#f4ead6]" />
+        <div className="h-5 w-2/3 animate-pulse rounded bg-[#f4ead6]" />
+        <div className="h-4 w-full animate-pulse rounded bg-[#f4ead6]" />
       </div>
     </div>
   );
@@ -50,45 +50,46 @@ export function Home() {
 
   return (
     <div className="overflow-x-hidden bg-[#fffdf8]">
-      <section className="relative overflow-hidden bg-gradient-to-r from-[#f8f5ec] to-[#f3e7c9]">
-        <div className="absolute inset-0 opacity-70">
-          <div className="absolute -left-16 top-10 h-48 w-48 rounded-full bg-[#f7d48a]/40 blur-3xl" />
-          <div className="absolute right-0 top-20 h-64 w-64 rounded-full bg-[#d8b15a]/25 blur-3xl" />
-          <div className="absolute bottom-0 left-1/3 h-40 w-40 rounded-full bg-white/70 blur-3xl" />
+      {/* Hero */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-[#f8f5ec] via-[#f8f5ec] to-[#f3e7c9]">
+        <div className="pointer-events-none absolute inset-0 opacity-70">
+          <div className="absolute -left-16 top-10 h-40 w-40 rounded-full bg-[#f7d48a]/40 blur-3xl sm:h-48 sm:w-48" />
+          <div className="absolute right-0 top-20 h-56 w-56 rounded-full bg-[#d8b15a]/25 blur-3xl sm:h-64 sm:w-64" />
+          <div className="absolute bottom-0 left-1/3 h-32 w-32 rounded-full bg-white/70 blur-3xl sm:h-40 sm:w-40" />
         </div>
 
-        <div className="relative mx-auto flex max-w-7xl flex-col items-center justify-between gap-10 px-4 py-10 md:flex-row md:px-8 md:py-16 lg:py-20">
-          <div className="w-full space-y-4 md:w-1/2 md:space-y-6 animate-[fadeUp_640ms_ease-out]">
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#ddc694] bg-white/70 px-4 py-2 text-xs uppercase tracking-[0.24em] text-[#b88a2f]">
-              <Sparkles className="h-4 w-4" />
+        <div className="relative mx-auto flex max-w-7xl flex-col-reverse items-center gap-8 px-4 py-10 sm:gap-10 sm:px-6 md:flex-row md:justify-between md:py-16 lg:px-8 lg:py-24">
+          <div className="w-full space-y-5 md:w-1/2 md:space-y-6 animate-[fadeUp_640ms_ease-out]">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#ddc694] bg-white/70 px-4 py-2 text-[11px] uppercase tracking-[0.24em] text-[#b88a2f] sm:text-xs">
+              <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               Crafted For Celebrations
             </div>
-            <h1 className="max-w-xl text-2xl leading-tight text-slate-900 sm:text-3xl lg:text-5xl">
+            <h1 className="max-w-xl text-[1.75rem] leading-[1.15] text-slate-900 sm:text-4xl lg:text-5xl lg:leading-tight">
               Premium jewellery with a warm gold heritage and a modern luxury finish.
             </h1>
-            <p className="max-w-xl text-base leading-7 text-slate-600 sm:text-lg">
+            <p className="max-w-xl text-[15px] leading-relaxed text-slate-600 sm:text-lg">
               Discover bridal necklaces, signature rings, elegant earrings, and
               handcrafted bangles designed to feel timeless in every photograph and
               unforgettable in every celebration.
             </p>
-            <div className="flex flex-col gap-3 sm:flex-row">
+            <div className="flex flex-col gap-3 pt-1 sm:flex-row">
               <Link
                 to="/products"
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#c89b3c] px-6 py-3 text-white shadow-md transition hover:bg-[#b88a2f] md:w-auto"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#c89b3c] px-6 py-3.5 text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[#b88a2f] hover:shadow-lg sm:py-3 md:w-auto"
               >
                 Explore Collection
                 <ArrowRight className="h-4 w-4" />
               </Link>
               <Link
                 to="/gold-rate"
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300 px-6 py-3 text-slate-800 transition hover:bg-white/70 md:w-auto"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white/60 px-6 py-3.5 text-slate-800 backdrop-blur transition hover:bg-white sm:py-3 md:w-auto"
               >
-                Today's Gold Rate
+                Today&apos;s Gold Rate
                 <TrendingUp className="h-4 w-4" />
               </Link>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 pt-4 sm:grid-cols-3">
+            <div className="grid grid-cols-3 gap-2.5 pt-3 sm:gap-4 sm:pt-4">
               {[
                 { label: "Hallmarked trust", value: "BIS" },
                 { label: "Live rate sync", value: `${refreshIntervalMinutes} min` },
@@ -96,36 +97,45 @@ export function Home() {
               ].map((item) => (
                 <div
                   key={item.label}
-                  className="rounded-2xl border border-white/70 bg-white/60 p-4 shadow-sm backdrop-blur"
+                  className="rounded-xl border border-white/70 bg-white/60 px-2.5 py-3 text-center shadow-sm backdrop-blur sm:rounded-2xl sm:px-4 sm:text-left"
                 >
-                  <p className="text-lg text-slate-900">{item.value}</p>
-                  <p className="mt-1 text-xs text-slate-600">{item.label}</p>
+                  <p className="text-base text-slate-900 sm:text-lg">{item.value}</p>
+                  <p className="mt-1 text-[11px] leading-tight text-slate-600 sm:text-xs">
+                    {item.label}
+                  </p>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="w-full md:w-1/2 animate-[fadeUp_760ms_ease-out]">
-            <div className="mx-auto max-w-xl overflow-hidden rounded-[2rem] border border-white/70 bg-white/40 p-3 shadow-[0_30px_80px_rgba(97,75,21,0.16)] backdrop-blur">
-              <ImageWithFallback
-                src="https://images.unsplash.com/photo-1708251079562-313ec8005354?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHw0fHxnb2xkJTIwamV3ZWxsZXJ5JTIwbmVja2xhY2V8ZW58MXx8fHwxNzc0NTM4MjIzfDA&ixlib=rb-4.1.0&q=80&w=1080"
-                alt="Premium Sri Amman Jewellery collection"
-                className="h-[250px] w-full rounded-2xl object-cover shadow-lg md:h-[450px] md:w-full"
-              />
+          <div className="w-full max-w-sm md:w-1/2 md:max-w-xl animate-[fadeUp_760ms_ease-out]">
+            <div className="relative mx-auto max-w-xl">
+              <div className="overflow-hidden rounded-[1.75rem] border border-white/70 bg-white/40 p-2.5 shadow-[0_30px_80px_rgba(97,75,21,0.16)] backdrop-blur sm:rounded-[2rem] sm:p-3">
+                <ImageWithFallback
+                  src="https://images.unsplash.com/photo-1708251079562-313ec8005354?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHw0fHxnb2xkJTIwamV3ZWxsZXJ5JTIwbmVja2xhY2V8ZW58MXx8fHwxNzc0NTM4MjIzfDA&ixlib=rb-4.1.0&q=80&w=1080"
+                  alt="Premium Sri Amman Jewellery collection"
+                  className="aspect-[4/3] w-full rounded-xl object-cover shadow-lg sm:aspect-[16/11] sm:rounded-2xl md:h-[420px] md:aspect-auto"
+                />
+              </div>
+              <div className="absolute -bottom-4 left-4 inline-flex items-center gap-2 rounded-xl bg-white px-3.5 py-2.5 text-xs text-slate-800 shadow-lg sm:-bottom-5 sm:left-6 sm:px-4 sm:py-3 sm:text-sm">
+                <ShieldCheck className="h-4 w-4 text-[#b88a2f]" />
+                BIS Hallmarked Certified
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 py-10 md:px-8 sm:py-16">
-        <div className="rounded-[2rem] border border-[#eadfc5] bg-white p-5 shadow-md sm:p-8">
+      {/* Live Gold Rate */}
+      <section className="mx-auto max-w-7xl px-4 pb-10 pt-14 sm:px-6 sm:pb-16 sm:pt-20 lg:px-8">
+        <div className="rounded-[1.75rem] border border-[#eadfc5] bg-white p-5 shadow-md sm:rounded-[2rem] sm:p-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-sm uppercase tracking-[0.22em] text-[#b88a2f]">
+              <p className="text-xs uppercase tracking-[0.22em] text-[#b88a2f] sm:text-sm">
                 Live Gold Rate
               </p>
-              <h2 className="mt-2 text-2xl text-slate-900 sm:text-3xl">
-                Today's gold and silver pricing
+              <h2 className="mt-2 text-xl text-slate-900 sm:text-2xl lg:text-3xl">
+                Today&apos;s gold and silver pricing
               </h2>
               <p className="mt-2 text-sm text-slate-600">
                 {goldLoading
@@ -147,47 +157,36 @@ export function Home() {
             </Link>
           </div>
 
-          <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
             {[
-              {
-                label: "22K Gold",
-                value: displayData.gold_22k,
-                accent: "from-[#fff7df] to-[#f7edd1]",
-              },
-              {
-                label: "24K Gold",
-                value: displayData.gold_24k,
-                accent: "from-[#fff7df] to-[#f7edd1]",
-              },
-              {
-                label: "Silver",
-                value: displayData.silver,
-                accent: "from-[#fafafa] to-[#f0f0f0]",
-              },
+              { label: "22K Gold", value: displayData.gold_22k },
+              { label: "24K Gold", value: displayData.gold_24k },
+              { label: "Silver", value: displayData.silver },
             ].map((item) => (
               <div
                 key={item.label}
-                className={`rounded-2xl border border-[#f0e6d2] bg-gradient-to-br ${item.accent} p-5 shadow-sm`}
+                className="rounded-2xl border border-[#f0e6d2] bg-gradient-to-br from-[#fff7df] to-[#f7edd1] p-4 shadow-sm sm:p-5"
               >
                 <p className="text-sm text-slate-600">{item.label}</p>
-                <p className="mt-3 text-3xl text-slate-900">
+                <p className="mt-2 text-2xl text-slate-900 sm:mt-3 sm:text-3xl">
                   {goldLoading ? "Loading..." : `Rs. ${formatRate(item.value)}`}
                 </p>
-                <p className="mt-2 text-sm text-slate-500">per gram</p>
+                <p className="mt-1 text-xs text-slate-500 sm:mt-2 sm:text-sm">per gram</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="bg-[#fffaf0] py-10 sm:py-16">
-        <div className="mx-auto max-w-7xl px-4 md:px-8">
+      {/* Signature Collections */}
+      <section className="bg-[#fffaf0] py-14 sm:py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-sm uppercase tracking-[0.22em] text-[#b88a2f]">
+              <p className="text-xs uppercase tracking-[0.22em] text-[#b88a2f] sm:text-sm">
                 Signature Collections
               </p>
-              <h2 className="mt-2 text-2xl text-slate-900 sm:text-3xl">
+              <h2 className="mt-2 text-xl text-slate-900 sm:text-2xl lg:text-3xl">
                 Bestselling jewellery selected for modern celebrations
               </h2>
             </div>
@@ -200,7 +199,7 @@ export function Home() {
             </Link>
           </div>
 
-          <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 sm:gap-6">
+          <div className="mt-8 grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
             {productsLoading
               ? Array.from({ length: 4 }).map((_, index) => <ProductCardSkeleton key={index} />)
               : featuredProducts.map((product) => {
@@ -209,34 +208,36 @@ export function Home() {
                   return (
                     <div
                       key={product.id}
-                      className="overflow-hidden rounded-2xl border border-[#f0e6d2] bg-white shadow-md transition hover:-translate-y-1 hover:shadow-xl"
+                      className="group overflow-hidden rounded-2xl border border-[#f0e6d2] bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
                     >
                       <Link
                         to={`/products/${product.id}`}
-                        className="group block overflow-hidden"
+                        className="block overflow-hidden"
                       >
                         <ImageWithFallback
                           src={resolveAssetUrl(product.image)}
                           alt={product.title}
-                          className="h-[220px] w-full object-cover transition duration-500 group-hover:scale-105"
+                          className="aspect-[4/5] w-full object-cover transition duration-500 group-hover:scale-105"
                         />
                       </Link>
-                      <div className="space-y-3 p-4">
-                        <p className="text-xs uppercase tracking-[0.18em] text-[#b88a2f]">
+                      <div className="space-y-2 p-3 sm:p-4">
+                        <p className="text-[10px] uppercase tracking-[0.18em] text-[#b88a2f] sm:text-xs">
                           {categoryLabel}
                         </p>
                         <Link
                           to={`/products/${product.id}`}
-                          className="block text-xl text-slate-900 transition hover:text-[#b88a2f]"
+                          className="block text-sm text-slate-900 transition hover:text-[#b88a2f] sm:text-lg"
                         >
                           {product.title}
                         </Link>
-                        <p className="line-clamp-2 text-sm leading-6 text-slate-600">
+                        <p className="hidden text-sm leading-6 text-slate-600 sm:line-clamp-2 sm:block">
                           {product.description}
                         </p>
                         <ProductContactCta
                           productName={product.title}
                           categoryLabel={categoryLabel}
+                          compact
+                          labelClassName="text-xs text-slate-500 sm:text-sm"
                         />
                       </div>
                     </div>
@@ -246,31 +247,35 @@ export function Home() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 py-10 md:px-8 sm:py-16">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+      {/* Category grid */}
+      <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
+        <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
           {categoryCards.map((category) => (
             <Link
               key={category.id}
               to={`/products?category=${category.id}`}
-              className="rounded-2xl border border-[#eadfc5] bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+              className="rounded-2xl border border-[#eadfc5] bg-white p-4 shadow-sm transition hover:-translate-y-1 hover:shadow-md sm:p-5"
             >
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#fff3d1] text-[#b88a2f]">
-                <Sparkles className="h-5 w-5" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#fff3d1] text-[#b88a2f] sm:h-12 sm:w-12">
+                <Sparkles className="h-4 w-4 sm:h-5 sm:w-5" />
               </div>
-              <h3 className="mt-4 text-xl text-slate-900">{category.label}</h3>
-              <p className="mt-2 text-sm leading-6 text-slate-600">
+              <h3 className="mt-3 text-base text-slate-900 sm:mt-4 sm:text-xl">
+                {category.label}
+              </h3>
+              <p className="mt-1.5 hidden text-sm leading-6 text-slate-600 sm:mt-2 sm:block">
                 {category.description}
               </p>
-              <p className="mt-4 text-sm text-slate-500">
-                {category.count} designs currently listed
+              <p className="mt-2 text-xs text-slate-500 sm:mt-4 sm:text-sm">
+                {category.count} designs
               </p>
             </Link>
           ))}
         </div>
       </section>
 
-      <section className="bg-[#1f1712] py-10 sm:py-16">
-        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-4 px-4 md:grid-cols-2 lg:grid-cols-4 md:px-8">
+      {/* Trust features */}
+      <section className="bg-[#1f1712] py-14 sm:py-20">
+        <div className="mx-auto grid max-w-7xl grid-cols-2 gap-3 px-4 sm:gap-5 sm:px-6 lg:grid-cols-4 lg:px-8">
           {[
             {
               title: "BIS Hallmarked",
@@ -297,13 +302,15 @@ export function Home() {
             return (
               <div
                 key={item.title}
-                className="rounded-2xl border border-white/10 bg-white/5 p-6 text-[#f5ecd9]"
+                className="rounded-2xl border border-white/10 bg-white/5 p-4 text-[#f5ecd9] sm:p-6"
               >
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#d8b15a]/20 text-[#e7c777]">
-                  <Icon className="h-5 w-5" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#d8b15a]/20 text-[#e7c777] sm:h-12 sm:w-12">
+                  <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
                 </div>
-                <h3 className="mt-4 text-xl text-white">{item.title}</h3>
-                <p className="mt-2 text-sm leading-6 text-[#d8c6a0]">
+                <h3 className="mt-3 text-base text-white sm:mt-4 sm:text-xl">
+                  {item.title}
+                </h3>
+                <p className="mt-1.5 hidden text-sm leading-6 text-[#d8c6a0] sm:mt-2 sm:block">
                   {item.description}
                 </p>
               </div>
@@ -312,14 +319,15 @@ export function Home() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 py-10 md:px-8 sm:py-16">
-        <div className="overflow-hidden rounded-[2rem] bg-gradient-to-r from-[#f8f5ec] to-[#f3e7c9] p-6 shadow-md sm:p-8 md:p-12">
+      {/* Showroom CTA */}
+      <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
+        <div className="overflow-hidden rounded-[1.75rem] bg-gradient-to-r from-[#f8f5ec] to-[#f3e7c9] p-6 shadow-md sm:rounded-[2rem] sm:p-8 md:p-12">
           <div className="flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
             <div className="max-w-2xl">
-              <p className="text-sm uppercase tracking-[0.22em] text-[#b88a2f]">
+              <p className="text-xs uppercase tracking-[0.22em] text-[#b88a2f] sm:text-sm">
                 Visit Our Showroom
               </p>
-              <h2 className="mt-2 text-2xl text-slate-900 sm:text-3xl">
+              <h2 className="mt-2 text-xl text-slate-900 sm:text-2xl lg:text-3xl">
                 Experience the finish, brilliance, and craftsmanship in person.
               </h2>
               <p className="mt-3 text-sm leading-7 text-slate-600 sm:text-base">

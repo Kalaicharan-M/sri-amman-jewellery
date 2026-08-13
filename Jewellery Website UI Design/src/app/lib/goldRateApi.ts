@@ -28,6 +28,7 @@ export interface GoldRateResponse {
   warning?: string;
   served_from_cache?: boolean;
   cache_ttl_minutes?: number;
+  cache_last_updated?: string;
 }
 
 export async function fetchGoldRates(

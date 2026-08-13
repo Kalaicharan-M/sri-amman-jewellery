@@ -9,13 +9,33 @@ interface ProductContactCtaProps {
   productName: string;
   categoryLabel?: string;
   labelClassName?: string;
+  /** Renders a single WhatsApp button instead of stacked Call + WhatsApp buttons. */
+  compact?: boolean;
 }
 
 export function ProductContactCta({
   productName,
   categoryLabel,
   labelClassName = "text-sm text-slate-500",
+  compact = false,
 }: ProductContactCtaProps) {
+  if (compact) {
+    return (
+      <div className="flex items-center justify-between gap-3">
+        <p className={labelClassName}>Price on Request</p>
+        <a
+          href={buildProductWhatsAppLink(productName, categoryLabel)}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-green-500 px-3 py-1.5 text-sm text-green-600 transition duration-200 hover:bg-green-50"
+        >
+          <MessageCircle className="h-3.5 w-3.5" />
+          Enquire
+        </a>
+      </div>
+    );
+  }
+
   return (
     <div>
       <p className={labelClassName}>Price on Request</p>

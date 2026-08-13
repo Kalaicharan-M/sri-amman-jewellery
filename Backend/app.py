@@ -2,29 +2,14 @@ import base64
 import hashlib
 import hmac
 import json
+import logging
 import os
 import re
 import time
 import uuid
 from pathlib import Path
 
-from flask import Flask, jsonify, request, send_from_directory
-from werkzeug.utils import secure_filename
-
-from product_store import (
-    ProductNotFoundError,
-    ProductStore,
-    ProductValidationError,
-)
-from scraper import (
-    GoldRateScraperError,
-    get_gold_rate_data,
-    start_gold_rate_background_updater,
-)
-
 BASE_DIR = Path(__file__).resolve().parent
-ALLOWED_IMAGE_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
-ADMIN_SESSION_TTL_SECONDS = 60 * 60 * 24 * 7
 
 
 def _load_local_env_file():
@@ -45,7 +30,39 @@ def _load_local_env_file():
             os.environ[key] = value
 
 
+# Must run before importing product_store/rate_card/scraper: those modules
+# read env vars (e.g. GOLD_RATE_CACHE_TTL_MINUTES) into module-level
+# constants at import time, so .env has to be loaded first.
 _load_local_env_file()
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+)
+
+from flask import Flask, jsonify, request, send_from_directory  # noqa: E402
+from werkzeug.utils import secure_filename  # noqa: E402
+
+from product_store import (  # noqa: E402
+    ProductNotFoundError,
+    ProductStore,
+    ProductValidationError,
+)
+from rate_card import (  # noqa: E402
+    RateCardError,
+    generate_and_cache_rate_card,
+    get_rate_card_meta,
+    get_rate_card_path,
+    start_rate_card_background_updater,
+)
+from scraper import (  # noqa: E402
+    GoldRateScraperError,
+    get_gold_rate_data,
+    start_gold_rate_background_updater,
+)
+
+ALLOWED_IMAGE_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
+ADMIN_SESSION_TTL_SECONDS = 60 * 60 * 24 * 7
 
 
 def _get_allowed_origins():
@@ -394,12 +411,65 @@ def create_app():
             app.logger.exception("Unexpected error while serving /gold-rate")
             return jsonify({"error": "Unexpected server error."}), 500
 
+    @app.get("/gold-rate/card")
+    def gold_rate_card():
+        try:
+            card_path = get_rate_card_path()
+        except (RateCardError, GoldRateScraperError) as exc:
+            return jsonify({"error": "Unable to generate the rate card.", "details": str(exc)}), 503
+        except Exception:
+            app.logger.exception("Unexpected error while serving /gold-rate/card")
+            return jsonify({"error": "Unexpected server error."}), 500
+
+        response = send_from_directory(
+            card_path.parent, card_path.name, mimetype="image/png"
+        )
+        response.headers["Cache-Control"] = "no-cache"
+        return response
+
+    @app.get("/gold-rate/card/meta")
+    def gold_rate_card_meta():
+        try:
+            return jsonify(get_rate_card_meta())
+        except (RateCardError, GoldRateScraperError) as exc:
+            return jsonify({"error": "Unable to generate the rate card.", "details": str(exc)}), 503
+        except Exception:
+            app.logger.exception("Unexpected error while serving /gold-rate/card/meta")
+            return jsonify({"error": "Unexpected server error."}), 500
+
+    @app.post("/gold-rate/card/refresh")
+    def gold_rate_card_refresh():
+        if not admin_password or not admin_session_secret:
+            return (
+                jsonify(
+                    {
+                        "error": (
+                            "Admin credentials are not configured on the backend."
+                        )
+                    }
+                ),
+                503,
+            )
+
+        if not _verify_admin_token(_extract_bearer_token(), admin_session_secret):
+            return _unauthorized_response()
+
+        try:
+            return jsonify(generate_and_cache_rate_card(force_refresh=True))
+        except (RateCardError, GoldRateScraperError) as exc:
+            return jsonify({"error": "Unable to generate the rate card.", "details": str(exc)}), 503
+        except Exception:
+            app.logger.exception("Unexpected error while serving /gold-rate/card/refresh")
+            return jsonify({"error": "Unexpected server error."}), 500
+
     if _should_start_background_updater():
         if start_gold_rate_background_updater():
             app.logger.info("Gold rate background updater started.")
+        if start_rate_card_background_updater():
+            app.logger.info("Rate card background updater started.")
     else:
         app.logger.info(
-            "Skipping gold rate background updater startup in the reload parent process."
+            "Skipping background updater startup in the reload parent process."
         )
 
     return app

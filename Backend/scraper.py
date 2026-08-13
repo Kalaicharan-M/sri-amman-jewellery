@@ -16,7 +16,6 @@ from bs4 import BeautifulSoup
 LIVE_CHENNAI_URL = "https://www.livechennai.com/gold_silverrate.asp"
 IST = timezone(timedelta(hours=5, minutes=30))
 DATE_FORMAT = "%d/%b/%Y"
-DATE_TIME_FORMAT = "%d/%b/%Y %I:%M:%S %p"
 DEFAULT_CACHE_FILE = Path(__file__).with_name("gold_rate_cache.json")
 CACHE_FILE = Path(os.getenv("GOLD_RATE_CACHE_FILE", str(DEFAULT_CACHE_FILE)))
 REQUEST_TIMEOUT = float(os.getenv("SCRAPER_TIMEOUT", "15"))
@@ -33,6 +32,11 @@ BACKGROUND_UPDATER_LOCK = threading.Lock()
 BACKGROUND_UPDATER_EVENT = threading.Event()
 BACKGROUND_UPDATER_THREAD: threading.Thread | None = None
 
+# Signaled every time a fresh cache is written (from either the background
+# updater or an on-demand request). Other modules (e.g. rate_card) can wait
+# on this instead of polling on their own fixed timer.
+CACHE_UPDATED_EVENT = threading.Event()
+
 try:
     import lxml  # noqa: F401
 
@@ -48,7 +52,11 @@ GOLD_ROW_PATTERN = re.compile(
 SILVER_ROW_PATTERN = re.compile(
     r"^(?P<date>\d{1,2}/[A-Za-z]{3}/\d{4})$"
 )
-UPDATE_TIME_PATTERN = re.compile(r"Last Update Time:\s*([0-9:]+\s*[AP]M)")
+UPDATE_TIME_PATTERN = re.compile(
+    r"Last Update Time:\s*(?:\d{1,2}/\d{1,2}/\d{4}\s*)?"
+    r"(?P<hour>\d{1,2}):(?P<minute>\d{2})(?::(?P<second>\d{2}))?\s*(?P<meridiem>[AP]M)",
+    re.IGNORECASE,
+)
 PAGE_DATE_PATTERN = re.compile(r"Todays Gold Rate in Chennai \((\d{1,2}/[A-Za-z]{3}/\d{4})\)")
 NUMBER_PATTERN = re.compile(r"^[\d,]+(?:\.\d+)?$")
 
@@ -101,6 +109,7 @@ def _save_cache(data: dict[str, Any]) -> dict[str, Any]:
         "data": data,
     }
     CACHE_FILE.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    CACHE_UPDATED_EVENT.set()
     return payload
 
 
@@ -244,29 +253,34 @@ def _extract_last_updated(lines: list[str], history: list[dict[str, Any]]) -> st
     if not history:
         raise GoldRateScraperError("No gold rate history found in the scraped data.")
 
-    update_time = None
+    time_match = None
     page_date = None
 
     for line in lines:
-        if update_time is None:
+        if time_match is None:
             time_match = UPDATE_TIME_PATTERN.search(line)
-            if time_match:
-                update_time = time_match.group(1)
 
         if page_date is None:
             date_match = PAGE_DATE_PATTERN.search(line)
             if date_match:
                 page_date = date_match.group(1)
 
-        if update_time and page_date:
+        if time_match and page_date:
             break
 
     data_date = history[0]["date"] or page_date
+    parsed = datetime.strptime(data_date, DATE_FORMAT)
 
-    if update_time:
-        parsed = datetime.strptime(f"{data_date} {update_time}", DATE_TIME_FORMAT)
-    else:
-        parsed = datetime.strptime(data_date, DATE_FORMAT)
+    if time_match:
+        hour = int(time_match.group("hour")) % 12
+        if time_match.group("meridiem").upper() == "PM":
+            hour += 12
+
+        parsed = parsed.replace(
+            hour=hour,
+            minute=int(time_match.group("minute")),
+            second=int(time_match.group("second") or 0),
+        )
 
     return parsed.replace(tzinfo=IST).isoformat()
 
