@@ -32,11 +32,6 @@ BACKGROUND_UPDATER_LOCK = threading.Lock()
 BACKGROUND_UPDATER_EVENT = threading.Event()
 BACKGROUND_UPDATER_THREAD: threading.Thread | None = None
 
-# Signaled every time a fresh cache is written (from either the background
-# updater or an on-demand request). Other modules (e.g. rate_card) can wait
-# on this instead of polling on their own fixed timer.
-CACHE_UPDATED_EVENT = threading.Event()
-
 try:
     import lxml  # noqa: F401
 
@@ -109,7 +104,6 @@ def _save_cache(data: dict[str, Any]) -> dict[str, Any]:
         "data": data,
     }
     CACHE_FILE.write_text(json.dumps(payload, indent=2), encoding="utf-8")
-    CACHE_UPDATED_EVENT.set()
     return payload
 
 

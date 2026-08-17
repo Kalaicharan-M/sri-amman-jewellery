@@ -10,7 +10,7 @@ from typing import Any
 
 from PIL import Image, ImageDraw, ImageFont
 
-from scraper import CACHE_UPDATED_EVENT, GoldRateScraperError, get_gold_rate_data
+from scraper import GoldRateScraperError, get_gold_rate_data
 
 BASE_DIR = Path(__file__).resolve().parent
 IST = timezone(timedelta(hours=5, minutes=30))
@@ -31,8 +31,10 @@ META_FILE = CACHE_FILE.with_suffix(".meta.json")
 
 # How often to check whether the underlying gold/silver rate has changed and,
 # if so, regenerate the card image. Cheap when unchanged: get_gold_rate_data()
-# just returns the existing scraper cache without a network call.
-POLL_INTERVAL_MINUTES = int(os.getenv("RATE_CARD_POLL_INTERVAL_MINUTES", "5"))
+# just returns the existing scraper cache without a network call. A plain
+# fixed-interval poll (rather than cross-thread event signaling) so a check
+# is always guaranteed within this window, with no risk of a missed wakeup.
+POLL_INTERVAL_MINUTES = int(os.getenv("RATE_CARD_POLL_INTERVAL_MINUTES", "2"))
 
 GOLD_SOVEREIGN_GRAMS = 8
 
@@ -291,8 +293,7 @@ def _rate_values_changed(meta: dict[str, Any] | None, data: dict[str, Any]) -> b
 
 def _background_updater_loop() -> None:
     LOGGER.info(
-        "Rate card background updater started; reacts immediately to gold-rate "
-        "cache updates, with a %s-minute fallback check.",
+        "Rate card background updater started; checking every %s minutes for rate changes.",
         POLL_INTERVAL_MINUTES,
     )
 
@@ -307,12 +308,6 @@ def _background_updater_loop() -> None:
             LOGGER.warning("Rate card refresh check failed: %s", exc)
         except Exception:
             LOGGER.exception("Unexpected error while checking/generating the rate card.")
-
-        # Wake immediately when the gold-rate cache refreshes (background
-        # thread or an on-demand request), instead of waiting out the full
-        # poll interval regardless of when the underlying data actually changed.
-        CACHE_UPDATED_EVENT.wait(timeout=POLL_INTERVAL_MINUTES * 60)
-        CACHE_UPDATED_EVENT.clear()
 
         threading.Event().wait(timeout=POLL_INTERVAL_MINUTES * 60)
 
