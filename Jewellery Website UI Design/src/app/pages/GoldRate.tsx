@@ -198,7 +198,7 @@ export function GoldRate() {
 
           <div className="mt-4">
             {rateCardLoading && (
-              <div className="aspect-[1280/908] w-full max-w-xl bg-gray-200 rounded-lg animate-pulse"></div>
+              <div className="aspect-[941/1672] w-full max-w-sm bg-gray-200 rounded-lg animate-pulse"></div>
             )}
 
             {!rateCardLoading && rateCardError && (
@@ -219,7 +219,7 @@ export function GoldRate() {
               <img
                 src={rateCardImageUrl}
                 alt="Today's gold and silver rate card"
-                className="w-full max-w-xl rounded-lg border border-gray-200 shadow-sm"
+                className="w-full max-w-sm rounded-lg border border-gray-200 shadow-sm"
               />
             )}
           </div>

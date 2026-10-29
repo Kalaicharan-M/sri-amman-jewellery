@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import os
@@ -14,8 +15,6 @@ from scraper import GoldRateScraperError, get_gold_rate_data
 
 BASE_DIR = Path(__file__).resolve().parent
 IST = timezone(timedelta(hours=5, minutes=30))
-SOURCE_DATE_FORMAT = "%d/%b/%Y"
-DISPLAY_DATE_FORMAT = "%d-%m-%Y"
 
 TEMPLATE_PATH = Path(
     os.getenv(
@@ -23,7 +22,9 @@ TEMPLATE_PATH = Path(
         str(BASE_DIR / "assets" / "templates" / "rate_card_template.png"),
     )
 )
-FONT_PATH = BASE_DIR / "assets" / "fonts" / "DejaVuSans-Bold.ttf"
+# Anton is a tall, condensed poster face, so long values like the 8 gram
+# price still fill the narrow rate boxes at a large size.
+FONT_PATH = BASE_DIR / "assets" / "fonts" / "Anton-Regular.ttf"
 
 DEFAULT_CACHE_FILE = BASE_DIR / "rate_card_cache.png"
 CACHE_FILE = Path(os.getenv("RATE_CARD_CACHE_FILE", str(DEFAULT_CACHE_FILE)))
@@ -38,28 +39,25 @@ POLL_INTERVAL_MINUTES = int(os.getenv("RATE_CARD_POLL_INTERVAL_MINUTES", "2"))
 
 GOLD_SOVEREIGN_GRAMS = 8
 
-# Measured from the sample template (1280x908). Each box marks where the
-# previous day's baked-in numbers sit; that area gets patched over with
-# cloned leaf texture before the new text is drawn directly on top of it.
-DATE_BOX = (505, 610, 760, 675)
-GOLD_LINE1_BOX = (110, 688, 535, 750)
-GOLD_LINE2_BOX = (110, 748, 590, 810)
-SILVER_BOX = (650, 708, 1015, 768)
+# Measured from the portrait poster template (941x1672), as
+# (left, top, right, bottom). Each rate box is the empty space to the right
+# of the printed rupee sign in a panel, centred vertically on that sign.
+# The date box is the blank pill to the right of the calendar icon.
+DATE_BOX = (418, 534, 792, 588)
+GOLD_1GM_BOX = (668, 664, 868, 754)
+GOLD_8GM_BOX = (668, 866, 868, 956)
+SILVER_1GM_BOX = (668, 1067, 868, 1157)
 
-# A texture-only strip (pure leaves, no baked-in text) used to patch over the
-# dynamic fields above. Measured/verified against the sample template.
-CLEAN_TEXTURE_BOX = (0, 800, 1280, 908)
+DISPLAY_DATE_FORMAT = "%d-%m-%Y"
+SOURCE_DATE_FORMAT = "%d/%b/%Y"
 
-# The static heading banner behind the Tamil labels, made translucent by
-# blending it with cloned leaf texture rather than left fully opaque.
-HEADING_BANNER_BOX = (100, 552, 1155, 620)
-HEADING_BANNER_OPACITY = 0.72
+# Sampled from the rupee sign printed in each panel, so the numbers match it.
+TEXT_COLOR_GOLD_PANEL = (127, 6, 5)
+TEXT_COLOR_SILVER_PANEL = (5, 26, 60)
+TEXT_COLOR_DATE = (127, 6, 5)
 
-TEXT_COLOR_WHITE = (255, 255, 255)
-TEXT_COLOR_GOLD = (247, 224, 150)
-TEXT_STROKE_COLOR = (20, 40, 20)
-TEXT_STROKE_WIDTH = 2
-BOX_PADDING = 8
+MAX_FONT_SIZE = 110
+MIN_FONT_SIZE = 28
 
 LOGGER = logging.getLogger(__name__)
 CARD_GENERATION_LOCK = threading.Lock()
@@ -97,88 +95,56 @@ def format_inr(value: float) -> str:
     return f"{sign}{','.join(groups)},{last_three}"
 
 
+def _load_font(size: int) -> ImageFont.FreeTypeFont:
+    return ImageFont.truetype(str(FONT_PATH), size)
+
+
 def _format_display_date(data: dict[str, Any]) -> str:
     raw_date = str(data.get("data_date", "")).strip()
 
     if raw_date:
         try:
-            parsed = datetime.strptime(raw_date, SOURCE_DATE_FORMAT)
-            return parsed.strftime(DISPLAY_DATE_FORMAT)
+            return datetime.strptime(raw_date, SOURCE_DATE_FORMAT).strftime(DISPLAY_DATE_FORMAT)
         except ValueError:
             pass
 
     return _now_ist().strftime(DISPLAY_DATE_FORMAT)
 
 
-def _load_font(size: int) -> ImageFont.FreeTypeFont:
-    return ImageFont.truetype(str(FONT_PATH), size)
-
-
-def _texture_patch(template: Image.Image, width: int, height: int, x_align: int) -> Image.Image:
-    src_x0, src_y0, src_x1, src_y1 = CLEAN_TEXTURE_BOX
-    src_width = src_x1 - src_x0
-    src_height = min(height, src_y1 - src_y0)
-
-    start_x = src_x0 + (x_align % src_width)
-    end_x = start_x + width
-
-    if end_x <= src_x1:
-        patch = template.crop((start_x, src_y0, end_x, src_y0 + src_height))
-    else:
-        first = template.crop((start_x, src_y0, src_x1, src_y0 + src_height))
-        remaining = width - first.width
-        second = template.crop((src_x0, src_y0, src_x0 + remaining, src_y0 + src_height))
-        patch = Image.new("RGB", (width, src_height))
-        patch.paste(first, (0, 0))
-        patch.paste(second, (first.width, 0))
-
-    if patch.height < height:
-        patch = patch.resize((width, height))
-
-    return patch
-
-
-def _cover_with_texture(template: Image.Image, box: tuple[int, int, int, int]) -> None:
+def _fit_font(
+    draw: ImageDraw.ImageDraw,
+    texts: list[str],
+    box: tuple[int, int, int, int],
+) -> ImageFont.FreeTypeFont:
+    # The largest size at which every text fits the box. Passing all three
+    # rates together gives them one shared size so the panels match.
     x0, y0, x1, y1 = box
-    patch = _texture_patch(template, x1 - x0, y1 - y0, x_align=x0)
-    template.paste(patch, (x0, y0))
+
+    for size in range(MAX_FONT_SIZE, MIN_FONT_SIZE - 1, -2):
+        font = _load_font(size)
+        if all(
+            right - left <= x1 - x0 and bottom - top <= y1 - y0
+            for left, top, right, bottom in (draw.textbbox((0, 0), text, font=font) for text in texts)
+        ):
+            return font
+
+    return _load_font(MIN_FONT_SIZE)
 
 
-def _draw_field(
-    template: Image.Image,
+def _draw_text(
     draw: ImageDraw.ImageDraw,
     box: tuple[int, int, int, int],
     text: str,
     font: ImageFont.FreeTypeFont,
-    text_color: tuple[int, int, int],
+    fill: tuple[int, int, int],
+    *,
+    align: str = "left",
 ) -> None:
     x0, y0, x1, y1 = box
-    padded_box = (x0 - BOX_PADDING, y0 - BOX_PADDING, x1 + BOX_PADDING, y1 + BOX_PADDING)
-    _cover_with_texture(template, padded_box)
-
-    text_bbox = draw.textbbox((0, 0), text, font=font, stroke_width=TEXT_STROKE_WIDTH)
-    text_width = text_bbox[2] - text_bbox[0]
-    text_height = text_bbox[3] - text_bbox[1]
-
-    center_x = x0 + ((x1 - x0) - text_width) / 2 - text_bbox[0]
-    center_y = y0 + ((y1 - y0) - text_height) / 2 - text_bbox[1]
-
-    draw.text(
-        (center_x, center_y),
-        text,
-        font=font,
-        fill=text_color,
-        stroke_width=TEXT_STROKE_WIDTH,
-        stroke_fill=TEXT_STROKE_COLOR,
-    )
-
-
-def _apply_translucent_banner(template: Image.Image) -> None:
-    x0, y0, x1, y1 = HEADING_BANNER_BOX
-    banner_region = template.crop((x0, y0, x1, y1))
-    texture_patch = _texture_patch(template, x1 - x0, y1 - y0, x_align=x0)
-    blended = Image.blend(texture_patch, banner_region, HEADING_BANNER_OPACITY)
-    template.paste(blended, (x0, y0))
+    left, top, right, bottom = draw.textbbox((0, 0), text, font=font)
+    x = x0 - left if align == "left" else x0 + ((x1 - x0) - (right - left)) / 2 - left
+    y = y0 + ((y1 - y0) - (bottom - top)) / 2 - top
+    draw.text((x, y), text, font=font, fill=fill)
 
 
 def render_rate_card(data: dict[str, Any]) -> Image.Image:
@@ -186,43 +152,33 @@ def render_rate_card(data: dict[str, Any]) -> Image.Image:
         raise RateCardError(f"Rate card template not found at {TEMPLATE_PATH}.")
 
     template = Image.open(TEMPLATE_PATH).convert("RGB")
-    _apply_translucent_banner(template)
     draw = ImageDraw.Draw(template)
 
-    gold_1gm = data["gold_22k"]
-    gold_8gm = gold_1gm * GOLD_SOVEREIGN_GRAMS
-    silver_1gm = data["silver"]
+    gold_1gm = format_inr(data["gold_22k"])
+    gold_8gm = format_inr(data["gold_22k"] * GOLD_SOVEREIGN_GRAMS)
+    silver_1gm = format_inr(data["silver"])
 
-    rate_font = _load_font(34)
-    date_font = _load_font(32)
+    display_date = _format_display_date(data)
+    date_font = _fit_font(draw, [display_date], DATE_BOX)
+    _draw_text(draw, DATE_BOX, display_date, date_font, TEXT_COLOR_DATE, align="center")
 
-    _draw_field(template, draw, DATE_BOX, _format_display_date(data), date_font, TEXT_COLOR_GOLD)
-    _draw_field(
-        template,
-        draw,
-        GOLD_LINE1_BOX,
-        f"1 GM  - Rs.{format_inr(gold_1gm)}",
-        rate_font,
-        TEXT_COLOR_WHITE,
-    )
-    _draw_field(
-        template,
-        draw,
-        GOLD_LINE2_BOX,
-        f"8 GM  - Rs.{format_inr(gold_8gm)}",
-        rate_font,
-        TEXT_COLOR_WHITE,
-    )
-    _draw_field(
-        template,
-        draw,
-        SILVER_BOX,
-        f"1 GM  -  Rs.{format_inr(silver_1gm)}",
-        rate_font,
-        TEXT_COLOR_WHITE,
-    )
+    # All rate boxes share the same size, so any one of them works for fitting.
+    rate_font = _fit_font(draw, [gold_1gm, gold_8gm, silver_1gm], GOLD_1GM_BOX)
+    _draw_text(draw, GOLD_1GM_BOX, gold_1gm, rate_font, TEXT_COLOR_GOLD_PANEL)
+    _draw_text(draw, GOLD_8GM_BOX, gold_8gm, rate_font, TEXT_COLOR_GOLD_PANEL)
+    _draw_text(draw, SILVER_1GM_BOX, silver_1gm, rate_font, TEXT_COLOR_SILVER_PANEL)
 
     return template
+
+
+def _design_fingerprint() -> str:
+    # Covers both the template image and this module's drawing code, so a new
+    # template or changed layout makes the cached card stale even when the
+    # rates themselves have not moved.
+    digest = hashlib.sha256()
+    digest.update(TEMPLATE_PATH.read_bytes() if TEMPLATE_PATH.exists() else b"")
+    digest.update(Path(__file__).read_bytes())
+    return digest.hexdigest()[:16]
 
 
 def _save_card(image: Image.Image, data: dict[str, Any]) -> dict[str, Any]:
@@ -234,6 +190,7 @@ def _save_card(image: Image.Image, data: dict[str, Any]) -> dict[str, Any]:
         "data_date": data.get("data_date", ""),
         "gold_22k": data.get("gold_22k"),
         "silver": data.get("silver"),
+        "design": _design_fingerprint(),
     }
     META_FILE.write_text(json.dumps(meta, indent=2), encoding="utf-8")
     return meta
@@ -280,7 +237,7 @@ def get_rate_card_meta(regenerate_if_missing: bool = True) -> dict[str, Any]:
     return meta
 
 
-def _rate_values_changed(meta: dict[str, Any] | None, data: dict[str, Any]) -> bool:
+def _card_needs_update(meta: dict[str, Any] | None, data: dict[str, Any]) -> bool:
     if meta is None:
         return True
 
@@ -288,6 +245,7 @@ def _rate_values_changed(meta: dict[str, Any] | None, data: dict[str, Any]) -> b
         meta.get("data_date") != data.get("data_date")
         or meta.get("gold_22k") != data.get("gold_22k")
         or meta.get("silver") != data.get("silver")
+        or meta.get("design") != _design_fingerprint()
     )
 
 
@@ -300,10 +258,10 @@ def _background_updater_loop() -> None:
     while True:
         try:
             data = get_gold_rate_data()
-            if _rate_values_changed(_load_meta(), data):
+            if _card_needs_update(_load_meta(), data):
                 image = render_rate_card(data)
                 meta = _save_card(image, data)
-                LOGGER.info("Rate card regenerated for %s (rate changed).", meta.get("data_date"))
+                LOGGER.info("Rate card regenerated for %s (rate or design changed).", meta.get("data_date"))
         except GoldRateScraperError as exc:
             LOGGER.warning("Rate card refresh check failed: %s", exc)
         except Exception:
